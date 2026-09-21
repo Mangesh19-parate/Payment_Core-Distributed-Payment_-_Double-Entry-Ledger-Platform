@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: payment-core-test
+  datasource:
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000
+      connection-init-sql: "SET lock_timeout = '10000ms'"
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: -1

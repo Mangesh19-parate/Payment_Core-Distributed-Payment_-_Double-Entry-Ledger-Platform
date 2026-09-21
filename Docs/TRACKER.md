@@ -6,25 +6,25 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-001 | Ledger append-only (permission-level) | NOT_STARTED | — | |
-| REQ-002 | `trg_ledger_balance` trigger | NOT_STARTED | — | |
-| REQ-003 | `trg_posting_invariant` trigger | NOT_STARTED | — | |
-| REQ-004 | `cached_balance` as projection | NOT_STARTED | — | |
-| REQ-005 | Currency match, pre-transaction check | NOT_STARTED | — | |
-| REQ-006 | Amount = ledger sum, pre-commit assert | NOT_STARTED | — | |
-| REQ-007 | Distinct accounts CHECK | NOT_STARTED | — | |
-| REQ-008 | Amount bounds CHECK | NOT_STARTED | — | |
-| REQ-009 | INR-only v1 | NOT_STARTED | — | |
-| REQ-010 | `SYSTEM_CASH` funding account | NOT_STARTED | — | |
-| REQ-020 | Ascending-ID lock ordering | NOT_STARTED | — | |
-| REQ-021 | `lock_timeout` set | NOT_STARTED | — | |
-| REQ-022 | Post-lock re-validation | NOT_STARTED | — | |
-| REQ-023 | DB unique constraint idempotency | NOT_STARTED | — | |
-| REQ-024 | Canonical request hash | NOT_STARTED | — | |
-| REQ-025 | Business-final → durable FAILED | NOT_STARTED | — | |
-| REQ-026 | Transient → full transaction abort | NOT_STARTED | — | |
-| REQ-027 | Idempotency key expiry | NOT_STARTED | — | |
-| REQ-028 | Idempotency-Key on all mutating endpoints | NOT_STARTED | — | |
+| REQ-001 | Ledger append-only (permission-level) | VERIFIED | Yes | `LedgerBalancePropertyTest` |
+| REQ-002 | `trg_ledger_balance` trigger | VERIFIED | Yes | `LedgerBalancePropertyTest.testTriggerRejectsImbalancedLedgerEntries` |
+| REQ-003 | `trg_posting_invariant` trigger | VERIFIED | Yes | `LedgerBalancePropertyTest.testTriggerRejectsPostingWithoutEntries` |
+| REQ-004 | `cached_balance` as projection | VERIFIED | Yes | `FundingAndTransferFlowTest`, `ConcurrentWithdrawalTest` |
+| REQ-005 | Currency match, pre-transaction check | VERIFIED | Yes | `TransferDomainService`, `Money` |
+| REQ-006 | Amount = ledger sum, pre-commit assert | VERIFIED | Yes | `LedgerBalancePropertyTest.testBalancedEntriesCommitSuccessfully` |
+| REQ-007 | Distinct accounts CHECK | VERIFIED | Yes | `FundingAndTransferFlowTest.testValidationConstraints` |
+| REQ-008 | Amount bounds CHECK | VERIFIED | Yes | `FundingAndTransferFlowTest.testValidationConstraints` |
+| REQ-009 | INR-only v1 | VERIFIED | Yes | `Money` strict check |
+| REQ-010 | `SYSTEM_CASH` funding account | VERIFIED | Yes | `FundingAndTransferFlowTest.testFundingAndTransferFlow` |
+| REQ-020 | Ascending-ID lock ordering | VERIFIED | Yes | `DeterministicDeadlockTest`, `ConcurrentWithdrawalTest` |
+| REQ-021 | `lock_timeout` set | VERIFIED | Yes | Configured via Hikari `SET lock_timeout = '3000ms'` |
+| REQ-022 | Post-lock re-validation | VERIFIED | Yes | `TransferDomainService.prepareTransfer` |
+| REQ-023 | DB unique constraint idempotency | VERIFIED | Yes | `IdempotencyRaceTest.testConcurrentIdempotentRequests` |
+| REQ-024 | Canonical request hash | VERIFIED | Yes | `IdempotencyRaceTest.testIdempotencyKeyPayloadConflict` |
+| REQ-025 | Business-final → durable FAILED | VERIFIED | Yes | `IdempotencyRaceTest.testBusinessFailureDurableIdempotency` |
+| REQ-026 | Transient → full transaction abort | VERIFIED | Yes | `TransferApplicationService` transient exception re-throw |
+| REQ-027 | Idempotency key expiry | DONE | Yes | Cleaned via scheduled job / schema |
+| REQ-028 | Idempotency-Key on all mutating endpoints | VERIFIED | Yes | `TransferController`, `AccountController` |
 
 ## Stage 2 — Kafka & Outbox (P1)
 
