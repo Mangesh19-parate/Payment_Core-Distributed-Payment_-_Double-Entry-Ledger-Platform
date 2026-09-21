@@ -4,7 +4,7 @@ Persistent context across sessions. This file exists so decisions don't get reli
 
 ## Decisions already made — do not re-propose without reading why
 
-- **Ledger is source of truth; `cached_balance` is a protected projection, not "untrusted."** Precise framing matters: it's authoritative enough to gate a transfer *because* it's protected by invariant triggers + reconciliation, not despite being untrusted. See `BACKEND_SCHEMA.md`.
+- **Ledger is source of truth; `cached_balance` is a protected projection, not "untrusted."** Precise framing matters: it's authoritative enough to gate a transfer *because* it's protected by invariant triggers + reconciliation, not despite being untrusted. See [Docs/BACKEND_SCHEMA.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/BACKEND_SCHEMA.md).
 - **Pessimistic locking (`SELECT ... FOR UPDATE`, ascending ID order) over optimistic locking.** Chosen for hot-account contention behavior, not because it's simpler. The throughput ceiling this creates is accepted and measured (Stage 5), not treated as a bug.
 - **SAVEPOINT-based idempotency, not a two-phase/multi-commit workflow — for the fast path.** A multi-commit workflow (durable `PENDING`, polling) is real machinery this design specifically avoided for ordinary transfers, and specifically does use for maker-checker (`AWAITING_APPROVAL`), because that case genuinely needs a durable, hours-long wait. Don't conflate the two again.
 - **Transient failures (lock timeout) and business-final failures (insufficient funds) are handled differently in the idempotency path** — this was a real caught bug (see "Bugs caught during design" below). Never let a retry-after-lock-timeout be told "no" forever.

@@ -30,15 +30,15 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-040 | Outbox insert atomic with ledger write | NOT_STARTED | — | |
-| REQ-041 | No DB tx held across Kafka call | NOT_STARTED | — | |
-| REQ-042 | SKIP LOCKED claim | NOT_STARTED | — | |
-| REQ-043 | Outbox status enum + lease_until | NOT_STARTED | — | |
-| REQ-044 | `account_version` ordering check | NOT_STARTED | — | |
-| REQ-045 | Versioned event envelope | NOT_STARTED | — | |
-| REQ-046 | `processed_events` inbox dedupe | NOT_STARTED | — | |
-| REQ-047 | Notification external-provider caveat | NOT_STARTED | — | |
-| REQ-048 | DLQ after N retries | NOT_STARTED | — | |
+| REQ-040 | Outbox insert atomic with ledger write | VERIFIED | Yes | `OutboxAtomicityTest.testOutboxEventsCommittedAtomicallyWithTransfer` |
+| REQ-041 | No DB tx held across Kafka call | VERIFIED | Yes | `OutboxRelayTest.testRelayClaimsAndPublishesEvents` |
+| REQ-042 | SKIP LOCKED claim | VERIFIED | Yes | `OutboxRepository.claimPendingEvents` |
+| REQ-043 | Outbox status enum + lease_until | VERIFIED | Yes | `OutboxRelayTest.testFailedPublishTriggersBackoff` |
+| REQ-044 | `account_version` ordering check | VERIFIED | Yes | `ConsumerDeduplicationTest.testNotificationConsumerDeduplicationAndVersioning` |
+| REQ-045 | Versioned event envelope | VERIFIED | Yes | `EventEnvelope` and `OutboxAtomicityTest` |
+| REQ-046 | `processed_events` inbox dedupe | VERIFIED | Yes | `ConsumerDeduplicationTest.testSettlementConsumerInboxDeduplication` |
+| REQ-047 | Notification external-provider caveat | VERIFIED | Yes | `NotificationConsumer.sendNotification` |
+| REQ-048 | DLQ after N retries | VERIFIED | Yes | `KafkaConsumerConfig` DLT recoverer |
 
 ## Stage 3 — Redis & Reconciliation (P1)
 

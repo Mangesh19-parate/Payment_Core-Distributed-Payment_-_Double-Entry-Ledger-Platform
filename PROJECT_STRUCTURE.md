@@ -4,18 +4,18 @@ Package-per-module, layered within each module, matching `ARCHITECTURE.md`'s own
 
 ```
 payment-ledger-platform/
-├── docs/                              # this doc suite — PRD, TRD, ARCHITECTURE, etc.
-│   ├── PRD.md
-│   ├── TRD.md
-│   ├── APP_FLOW.md
-│   ├── UI_UX_DESIGN.md
-│   ├── BACKEND_SCHEMA.md
-│   ├── IMPLEMENTATION_PLAN.md
-│   ├── ARCHITECTURE.md
-│   ├── PROJECT_STRUCTURE.md
-│   ├── TRACKER.md
-│   ├── MEMORY.md
-│   └── AGENT.md
+├── AGENT.md                           # entry point for AI agents, reading order, non-negotiables
+├── MEMORY.md                          # persistent decision log, design history, caught bugs
+├── PROJECT_STRUCTURE.md               # directory layout, module layering, ownership rules
+├── Docs/                              # project documentation suite
+│   ├── PRD.md                         # product requirements, problem statement, P0/P1/P2 scope
+│   ├── TRD.md                         # technical requirements (REQ-001 through REQ-123)
+│   ├── ARCHITECTURE.md                # system architecture, ownership boundaries, stop-and-ask triggers
+│   ├── BACKEND_SCHEMA.md              # authoritative DDL, invariant triggers, state machines
+│   ├── APP_FLOW.md                    # sequence diagrams for transfers, idempotency, maker-checker
+│   ├── IMPLEMENTATION_PLAN.md         # stage roadmap, dependency sequencing, exit criteria
+│   ├── TRACKER.md                     # requirement-by-requirement implementation tracker
+│   └── UI_UX_DESIGN.md                # Stage 6 demo observatory screens
 │
 ├── src/main/java/com/platform/
 │   ├── transfer/                      # OWNS: transactions, ledger_entries writes, cached_balance writes

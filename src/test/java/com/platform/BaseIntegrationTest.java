@@ -40,6 +40,9 @@ public abstract class BaseIntegrationTest {
     @org.springframework.beans.factory.annotation.Autowired
     protected org.springframework.jdbc.core.JdbcTemplate testJdbcTemplate;
 
+    @org.springframework.boot.test.mock.mockito.MockBean
+    protected org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
+
     protected UUID createTestUser() {
         UUID userId = UUID.randomUUID();
         testJdbcTemplate.update(
