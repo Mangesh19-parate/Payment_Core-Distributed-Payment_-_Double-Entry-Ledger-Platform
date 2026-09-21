@@ -8,22 +8,22 @@ A Java/Spring Boot distributed payment and double-entry ledger platform, built a
 
 ## Reading order for a new session
 
-1. `MEMORY.md` — decisions already made and why, so you don't re-propose something already rejected.
-2. `TRACKER.md` — current state: what's done, what's in progress, what's next.
-3. `ARCHITECTURE.md` — what's allowed to touch what, and when to stop and ask (read this even if you think you already know the codebase — it's the contract, not a suggestion).
-4. Whichever of `TRD.md` / `BACKEND_SCHEMA.md` / `APP_FLOW.md` / `IMPLEMENTATION_PLAN.md` is relevant to the specific task.
+1. [MEMORY.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/MEMORY.md) — decisions already made and why, so you don't re-propose something already rejected.
+2. [Docs/TRACKER.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/TRACKER.md) — current state: what's done, what's in progress, what's next.
+3. [Docs/ARCHITECTURE.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/ARCHITECTURE.md) — what's allowed to touch what, and when to stop and ask (read this even if you think you already know the codebase — it's the contract, not a suggestion).
+4. Whichever of [Docs/TRD.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/TRD.md) / [Docs/BACKEND_SCHEMA.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/BACKEND_SCHEMA.md) / [Docs/APP_FLOW.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/APP_FLOW.md) / [Docs/IMPLEMENTATION_PLAN.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/IMPLEMENTATION_PLAN.md) is relevant to the specific task.
 
-Do not start writing code before reading `ARCHITECTURE.md`'s "when does the agent stop and ask" section. That section exists specifically because this system has non-negotiable invariants (also listed there) that a plausible-looking small change can violate silently.
+Do not start writing code before reading [Docs/ARCHITECTURE.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/ARCHITECTURE.md)'s "when does the agent stop and ask" section. That section exists specifically because this system has non-negotiable invariants (also listed there) that a plausible-looking small change can violate silently.
 
 ## How to work a task
 
-1. Find or confirm the task's `REQ-NNN` ID in `TRD.md`. If the task doesn't map to an existing requirement, that's itself a signal — check `IMPLEMENTATION_PLAN.md`'s stage sequencing before assuming it's fine to add scope.
-2. Check `TRACKER.md` for the requirement's current status and any prior notes.
-3. Check `ARCHITECTURE.md`'s ownership table — confirm which module owns the code you're about to touch, and that you're not writing a second path to a table another module owns.
-4. If the task falls under any "stop and ask" trigger in `ARCHITECTURE.md`, stop and ask before writing code, not after.
-5. Implement the smallest change that satisfies the requirement, following `PROJECT_STRUCTURE.md`'s layering (Controller → Application Service → Domain Service → Repository — no shortcuts).
-6. Write or extend the test that proves the requirement, per `TRD.md`'s stated acceptance form and `spec §11`'s testing philosophy: a claim without a test is not done.
-7. Update `TRACKER.md` with the result. Append a decision entry to `MEMORY.md` if you made a judgment call worth remembering (see `MEMORY.md`'s format).
+1. Find or confirm the task's `REQ-NNN` ID in [Docs/TRD.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/TRD.md). If the task doesn't map to an existing requirement, that's itself a signal — check [Docs/IMPLEMENTATION_PLAN.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/IMPLEMENTATION_PLAN.md)'s stage sequencing before assuming it's fine to add scope.
+2. Check [Docs/TRACKER.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/TRACKER.md) for the requirement's current status and any prior notes.
+3. Check [Docs/ARCHITECTURE.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/ARCHITECTURE.md)'s ownership table — confirm which module owns the code you're about to touch, and that you're not writing a second path to a table another module owns.
+4. If the task falls under any "stop and ask" trigger in [Docs/ARCHITECTURE.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/ARCHITECTURE.md), stop and ask before writing code, not after.
+5. Implement the smallest change that satisfies the requirement, following [PROJECT_STRUCTURE.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/PROJECT_STRUCTURE.md)'s layering (Controller → Application Service → Domain Service → Repository — no shortcuts).
+6. Write or extend the test that proves the requirement, per [Docs/TRD.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/TRD.md)'s stated acceptance form: a claim without a test is not done.
+7. Update [Docs/TRACKER.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/Docs/TRACKER.md) with the result. Append a decision entry to [MEMORY.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/MEMORY.md) if you made a judgment call worth remembering (see [MEMORY.md](file:///d:/Python/Data%20sets%20by%20campusx/PaymentCore/MEMORY.md)'s format).
 
 ## Non-negotiables (the short version — full list in `ARCHITECTURE.md`)
 

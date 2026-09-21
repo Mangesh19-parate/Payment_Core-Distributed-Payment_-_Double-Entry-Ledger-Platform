@@ -9,6 +9,12 @@ import com.platform.common.error.ErrorCode;
 import com.platform.transfer.domain.*;
 import com.platform.transfer.persistence.LedgerRepository;
 import com.platform.transfer.persistence.TransactionRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.platform.outbox.domain.OutboxEvent;
+import com.platform.outbox.events.AccountBalanceChangedEvent;
+import com.platform.outbox.events.EventEnvelope;
+import com.platform.outbox.events.TransactionPostedEvent;
+import com.platform.outbox.persistence.OutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -31,20 +37,26 @@ public class TransferApplicationService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final LedgerRepository ledgerRepository;
+    private final OutboxRepository outboxRepository;
     private final TransferDomainService transferDomainService;
+    private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
 
     public TransferApplicationService(
             AccountRepository accountRepository,
             TransactionRepository transactionRepository,
             LedgerRepository ledgerRepository,
+            OutboxRepository outboxRepository,
             TransferDomainService transferDomainService,
+            ObjectMapper objectMapper,
             PlatformTransactionManager transactionManager
     ) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.ledgerRepository = ledgerRepository;
+        this.outboxRepository = outboxRepository;
         this.transferDomainService = transferDomainService;
+        this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -152,6 +164,12 @@ public class TransferApplicationService {
 
                 transactionRepository.updateStatus(effectiveTxnId, TransactionStatus.POSTED, null, now);
 
+                // 7. Atomic Outbox Event Persistence (REQ-040, REQ-044, REQ-045)
+                List<OutboxEvent> outboxEvents = createOutboxEvents(
+                        effectiveTxnId, principalId, src, dst, plan, amountPaise, currency, now
+                );
+                outboxRepository.saveAll(outboxEvents);
+
                 status.releaseSavepoint(savepoint);
 
                 log.info("Transfer {} successfully POSTED (source={}, dest={}, amount={})",
@@ -183,5 +201,57 @@ public class TransferApplicationService {
 
     public Optional<Transaction> getTransaction(UUID transactionId) {
         return transactionRepository.findById(transactionId);
+    }
+
+    private List<OutboxEvent> createOutboxEvents(
+            UUID transactionId,
+            UUID principalId,
+            Account src,
+            Account dst,
+            TransferDomainService.ExecutionPlan plan,
+            long amountPaise,
+            String currency,
+            Instant now
+    ) {
+        try {
+            // 1. TransactionPosted event (REQ-040, REQ-045)
+            TransactionPostedEvent txnPayload = new TransactionPostedEvent(
+                    transactionId, principalId, src.id(), dst.id(), amountPaise, currency, "TRANSFER", now
+            );
+            EventEnvelope<TransactionPostedEvent> txnEnvelope = EventEnvelope.of(
+                    "TransactionPosted", 1, transactionId, txnPayload
+            );
+            OutboxEvent txnOutboxEvent = OutboxEvent.pending(
+                    transactionId, "TransactionPosted", objectMapper.writeValueAsString(txnEnvelope)
+            );
+
+            // 2. AccountBalanceChanged for source account with new version (REQ-044)
+            AccountBalanceChangedEvent srcPayload = new AccountBalanceChangedEvent(
+                    src.id(), transactionId, -amountPaise, plan.updatedSourceAccount().cachedBalance(),
+                    src.version() + 1, currency, now
+            );
+            EventEnvelope<AccountBalanceChangedEvent> srcEnvelope = EventEnvelope.of(
+                    "AccountBalanceChanged", 1, src.id(), srcPayload
+            );
+            OutboxEvent srcOutboxEvent = OutboxEvent.pending(
+                    src.id(), "AccountBalanceChanged", objectMapper.writeValueAsString(srcEnvelope)
+            );
+
+            // 3. AccountBalanceChanged for destination account with new version (REQ-044)
+            AccountBalanceChangedEvent dstPayload = new AccountBalanceChangedEvent(
+                    dst.id(), transactionId, amountPaise, plan.updatedDestinationAccount().cachedBalance(),
+                    dst.version() + 1, currency, now
+            );
+            EventEnvelope<AccountBalanceChangedEvent> dstEnvelope = EventEnvelope.of(
+                    "AccountBalanceChanged", 1, dst.id(), dstPayload
+            );
+            OutboxEvent dstOutboxEvent = OutboxEvent.pending(
+                    dst.id(), "AccountBalanceChanged", objectMapper.writeValueAsString(dstEnvelope)
+            );
+
+            return List.of(txnOutboxEvent, srcOutboxEvent, dstOutboxEvent);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Failed to serialize outbox event JSON", ex);
+        }
     }
 }
