@@ -40,8 +40,10 @@ public class TransferApplicationService {
     private final OutboxRepository outboxRepository;
     private final TransferDomainService transferDomainService;
     private final com.platform.velocity.VelocityCheckService velocityCheckService;
+    private final com.platform.approval.persistence.ApprovalRepository approvalRepository;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final long makerCheckerThresholdPaise;
 
     public TransferApplicationService(
             AccountRepository accountRepository,
@@ -50,8 +52,10 @@ public class TransferApplicationService {
             OutboxRepository outboxRepository,
             TransferDomainService transferDomainService,
             com.platform.velocity.VelocityCheckService velocityCheckService,
+            com.platform.approval.persistence.ApprovalRepository approvalRepository,
             ObjectMapper objectMapper,
-            PlatformTransactionManager transactionManager
+            PlatformTransactionManager transactionManager,
+            @org.springframework.beans.factory.annotation.Value("${app.maker-checker.threshold-paise:10000000}") long makerCheckerThresholdPaise
     ) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
@@ -59,7 +63,9 @@ public class TransferApplicationService {
         this.outboxRepository = outboxRepository;
         this.transferDomainService = transferDomainService;
         this.velocityCheckService = velocityCheckService;
+        this.approvalRepository = approvalRepository;
         this.objectMapper = objectMapper;
+        this.makerCheckerThresholdPaise = makerCheckerThresholdPaise;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -104,6 +110,27 @@ public class TransferApplicationService {
                         Money.ofPaise(existingTxn.amount(), existingTxn.currency()),
                         existingTxn.failureReason()
                 );
+            }
+
+            // Maker-Checker threshold check (REQ-102)
+            if (amountPaise > makerCheckerThresholdPaise) {
+                Optional<UUID> awaitingTxnId = transactionRepository.tryInsertAwaitingApprovalTransaction(
+                        transactionId,
+                        principalId,
+                        idempotencyKey,
+                        requestHash,
+                        sourceAccountId,
+                        destinationAccountId,
+                        amountPaise,
+                        currency
+                );
+                UUID effId = awaitingTxnId.orElseGet(() ->
+                        transactionRepository.findByPrincipalAndIdempotencyKey(principalId, idempotencyKey).orElseThrow().id()
+                );
+                approvalRepository.createApproval(effId, principalId);
+                log.info("Transfer {} requires maker-checker approval (amount={} > threshold={})",
+                        effId, amountPaise, makerCheckerThresholdPaise);
+                return new TransferResult.AwaitingApproval(effId, sourceAccountId, destinationAccountId, amount, Instant.now());
             }
 
             // 2. Acquire account row locks in ascending UUID order FIRST (REQ-020)
@@ -204,6 +231,151 @@ public class TransferApplicationService {
                 log.error("Unexpected error during transfer {}: aborting transaction", effectiveTxnId, ex);
                 throw ex;
             }
+        });
+    }
+
+    /**
+     * Executes approved transfer posting reusing core locking and double-entry ledger logic (REQ-102).
+     */
+    public TransferResult executeApprovedPosting(UUID transactionId, UUID approverId) {
+        Transaction txn = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+
+        if (txn.status() != TransactionStatus.AWAITING_APPROVAL) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Transaction is not awaiting approval: status=" + txn.status());
+        }
+
+        Money amount = Money.ofPaise(txn.amount(), txn.currency());
+
+        return transactionTemplate.execute(status -> {
+            List<Account> lockedAccounts = accountRepository.findAccountsForUpdate(txn.sourceAccountId(), txn.destinationAccountId());
+            if (lockedAccounts.size() < 2) {
+                throw new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, "Accounts not found during approval");
+            }
+
+            Account src = lockedAccounts.stream().filter(a -> a.id().equals(txn.sourceAccountId())).findFirst().orElseThrow();
+            Account dst = lockedAccounts.stream().filter(a -> a.id().equals(txn.destinationAccountId())).findFirst().orElseThrow();
+            Instant now = Instant.now();
+
+            TransferDomainService.DomainValidationResult validation = transferDomainService.prepareTransfer(
+                    txn.id(), src, dst, amount, now
+            );
+
+            if (!validation.isSuccess()) {
+                transactionRepository.updateStatus(txn.id(), TransactionStatus.FAILED, validation.failureReason(), null);
+                approvalRepository.updateStatus(txn.id(), approverId, "REJECTED", validation.failureReason());
+                throw new BusinessException(validation.errorCode(), validation.failureReason());
+            }
+
+            TransferDomainService.ExecutionPlan plan = validation.plan();
+            ledgerRepository.insertEntries(plan.entries());
+            accountRepository.updateBalanceAndVersion(src.id(), plan.updatedSourceAccount().cachedBalance(), src.version());
+            accountRepository.updateBalanceAndVersion(dst.id(), plan.updatedDestinationAccount().cachedBalance(), dst.version());
+
+            transactionRepository.updateStatus(txn.id(), TransactionStatus.POSTED, null, now);
+            approvalRepository.updateStatus(txn.id(), approverId, "APPROVED", "Approved by checker");
+
+            List<OutboxEvent> outboxEvents = createOutboxEvents(
+                    txn.id(), txn.principalId(), src, dst, plan, txn.amount(), txn.currency(), now
+            );
+            outboxRepository.saveAll(outboxEvents);
+
+            log.info("Transaction {} successfully approved and POSTED by {}", txn.id(), approverId);
+            return new TransferResult.Posted(txn.id(), txn.sourceAccountId(), txn.destinationAccountId(), amount, now);
+        });
+    }
+
+    /**
+     * Rejects an awaiting-approval transaction (REQ-102).
+     */
+    public void executeRejection(UUID transactionId, UUID rejecterId, String reason) {
+        Transaction txn = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+
+        if (txn.status() != TransactionStatus.AWAITING_APPROVAL) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Transaction is not awaiting approval: status=" + txn.status());
+        }
+
+        transactionTemplate.executeWithoutResult(status -> {
+            transactionRepository.updateStatus(txn.id(), TransactionStatus.REJECTED, reason, null);
+            approvalRepository.updateStatus(txn.id(), rejecterId, "REJECTED", reason);
+            log.info("Transaction {} REJECTED by {}", txn.id(), rejecterId);
+        });
+    }
+
+    /**
+     * Executes reversal of a POSTED transaction (REQ-101).
+     * Reversal is posted with reversed debit/credit and reference_txn_id pointing to original.
+     * Enforced structurally by partial unique index ux_one_reversal_per_transaction.
+     */
+    public TransferResult reverseTransaction(UUID callerId, String idempotencyKey, UUID originalTransactionId, String reason) {
+        Transaction originalTxn = transactionRepository.findById(originalTransactionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.TRANSACTION_NOT_FOUND, "Original transaction not found"));
+
+        if (originalTxn.status() != TransactionStatus.POSTED) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Only POSTED transactions can be reversed: status=" + originalTxn.status());
+        }
+
+        // REQ-101: Caller cannot be the initiator of the original transaction
+        if (callerId.equals(originalTxn.principalId())) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Initiator of original transaction cannot authorize reversal");
+        }
+
+        UUID reversalTxnId = UUID.randomUUID();
+        UUID revSourceId = originalTxn.destinationAccountId();
+        UUID revDestId = originalTxn.sourceAccountId();
+        long amountPaise = originalTxn.amount();
+        String currency = originalTxn.currency();
+        Money amount = Money.ofPaise(amountPaise, currency);
+        String requestHash = IdempotencyKey.computeRequestHash(revSourceId, revDestId, amountPaise, currency);
+
+        return transactionTemplate.execute(status -> {
+            Optional<Transaction> existingOpt = transactionRepository.findByPrincipalAndIdempotencyKey(callerId, idempotencyKey);
+            if (existingOpt.isPresent()) {
+                Transaction existingTxn = existingOpt.get();
+                return new TransferResult.IdempotentReplay(
+                        existingTxn.id(), existingTxn.status(), Money.ofPaise(existingTxn.amount(), existingTxn.currency()), existingTxn.failureReason()
+                );
+            }
+
+            Optional<UUID> insertedId = transactionRepository.tryInsertReversalTransaction(
+                    reversalTxnId, callerId, idempotencyKey, requestHash, revSourceId, revDestId, amountPaise, currency, originalTransactionId
+            );
+
+            if (insertedId.isEmpty()) {
+                throw new BusinessException(ErrorCode.IDEMPOTENCY_CONFLICT, "Reversal idempotency conflict");
+            }
+
+            List<Account> lockedAccounts = accountRepository.findAccountsForUpdate(revSourceId, revDestId);
+            Account src = lockedAccounts.stream().filter(a -> a.id().equals(revSourceId)).findFirst().orElseThrow();
+            Account dst = lockedAccounts.stream().filter(a -> a.id().equals(revDestId)).findFirst().orElseThrow();
+            Instant now = Instant.now();
+
+            TransferDomainService.DomainValidationResult validation = transferDomainService.prepareTransfer(
+                    reversalTxnId, src, dst, amount, now
+            );
+
+            if (!validation.isSuccess()) {
+                transactionRepository.updateStatus(reversalTxnId, TransactionStatus.FAILED, validation.failureReason(), null);
+                throw new BusinessException(validation.errorCode(), validation.failureReason());
+            }
+
+            TransferDomainService.ExecutionPlan plan = validation.plan();
+            ledgerRepository.insertEntries(plan.entries());
+            accountRepository.updateBalanceAndVersion(src.id(), plan.updatedSourceAccount().cachedBalance(), src.version());
+            accountRepository.updateBalanceAndVersion(dst.id(), plan.updatedDestinationAccount().cachedBalance(), dst.version());
+
+            // Update reversal transaction to POSTED, original to REVERSED
+            transactionRepository.updateStatus(reversalTxnId, TransactionStatus.POSTED, null, now);
+            transactionRepository.updateStatus(originalTransactionId, TransactionStatus.REVERSED, "Reversed by txn " + reversalTxnId + ": " + reason, now);
+
+            List<OutboxEvent> outboxEvents = createOutboxEvents(
+                    reversalTxnId, callerId, src, dst, plan, amountPaise, currency, now
+            );
+            outboxRepository.saveAll(outboxEvents);
+
+            log.info("Transaction {} successfully reversed via reversal transaction {}", originalTransactionId, reversalTxnId);
+            return new TransferResult.Posted(reversalTxnId, revSourceId, revDestId, amount, now);
         });
     }
 

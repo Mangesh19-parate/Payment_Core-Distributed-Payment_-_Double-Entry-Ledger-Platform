@@ -50,6 +50,14 @@ public class TransferController {
                     null,
                     p.postedAt()
             ));
+            case TransferResult.AwaitingApproval a -> ResponseEntity.status(HttpStatus.ACCEPTED).body(new TransferResponse(
+                    a.transactionId(),
+                    com.platform.transfer.domain.TransactionStatus.AWAITING_APPROVAL,
+                    a.amount().amount(),
+                    a.amount().currency(),
+                    "Transfer requires maker-checker approval",
+                    a.createdAt()
+            ));
             case TransferResult.BusinessFailure f -> {
                 throw new BusinessException(f.errorCode(), f.reason());
             }
@@ -64,6 +72,48 @@ public class TransferController {
                     Instant.now()
             ));
         };
+    }
+
+    public record ReversalRequest(UUID callerId, String reason) {}
+
+    @PostMapping("/transactions/{id}/reverse")
+    public ResponseEntity<TransferResponse> reverseTransaction(
+            @PathVariable("id") UUID id,
+            @RequestHeader(value = "Idempotency-Key") String idempotencyKey,
+            @RequestBody ReversalRequest request
+    ) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required");
+        }
+
+        TransferResult result = transferApplicationService.reverseTransaction(
+                request.callerId(),
+                idempotencyKey.trim(),
+                id,
+                request.reason() != null ? request.reason() : "Transaction reversed"
+        );
+
+        if (result instanceof TransferResult.Posted p) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(new TransferResponse(
+                    p.transactionId(),
+                    com.platform.transfer.domain.TransactionStatus.POSTED,
+                    p.amount().amount(),
+                    p.amount().currency(),
+                    null,
+                    p.postedAt()
+            ));
+        } else if (result instanceof TransferResult.IdempotentReplay r) {
+            return ResponseEntity.ok(new TransferResponse(
+                    r.transactionId(),
+                    r.status(),
+                    r.amount().amount(),
+                    r.amount().currency(),
+                    r.failureReason(),
+                    Instant.now()
+            ));
+        }
+
+        throw new BusinessException(ErrorCode.INTERNAL_ERROR, "Unexpected reversal outcome");
     }
 
     @GetMapping("/transactions/{id}")

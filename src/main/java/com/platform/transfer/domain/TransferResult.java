@@ -27,4 +27,12 @@ public sealed interface TransferResult {
             Money amount,
             String failureReason
     ) implements TransferResult {}
+
+    record AwaitingApproval(
+            UUID transactionId,
+            UUID sourceAccountId,
+            UUID destinationAccountId,
+            Money amount,
+            Instant createdAt
+    ) implements TransferResult {}
 }
