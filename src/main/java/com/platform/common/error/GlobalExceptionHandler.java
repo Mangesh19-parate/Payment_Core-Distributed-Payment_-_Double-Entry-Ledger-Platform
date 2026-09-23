@@ -43,12 +43,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex) {
         String detail = ex.getBindingResult().getFieldErrors().stream()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
-                .reduce((a, b) -> a + "; " + b)
-                .orElse("Validation failed");
+                .collect(java.util.stream.Collectors.joining("; "));
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                 "error", ErrorCode.INVALID_REQUEST.name(),
-                "message", detail,
+                "message", detail.isBlank() ? "Validation failed" : detail,
                 "timestamp", Instant.now().toString()
         ));
     }
