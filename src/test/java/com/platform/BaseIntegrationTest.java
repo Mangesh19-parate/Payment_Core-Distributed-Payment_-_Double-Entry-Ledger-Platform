@@ -15,6 +15,7 @@ import java.util.UUID;
 public abstract class BaseIntegrationTest {
 
     private static EmbeddedPostgres embeddedPostgres;
+    private static redis.embedded.RedisServer redisServer;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -32,8 +33,15 @@ public abstract class BaseIntegrationTest {
             registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
             registry.add("spring.datasource.hikari.maximum-pool-size", () -> 50);
             registry.add("spring.datasource.hikari.connection-init-sql", () -> "SET lock_timeout = '15000ms'");
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to start Embedded Postgres", e);
+
+            if (redisServer == null) {
+                redisServer = redis.embedded.RedisServer.newRedisServer().port(6370).build();
+                redisServer.start();
+            }
+            registry.add("spring.data.redis.host", () -> "localhost");
+            registry.add("spring.data.redis.port", () -> redisServer.ports().get(0));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start Embedded test infrastructure", e);
         }
     }
 

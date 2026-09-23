@@ -27,6 +27,12 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       enable-auto-commit: false
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
 app:
   outbox:
     relay:
@@ -39,6 +45,13 @@ app:
     topics:
       transaction-posted: transactions.posted
       account-balance-changed: accounts.balance-changed
+  velocity:
+    window-seconds: ${VELOCITY_WINDOW_SECONDS:3600}
+    max-amount-paise: ${VELOCITY_MAX_AMOUNT_PAISE:50000000} # ₹5,00,000 per hour limit
+  reconciliation:
+    enabled: ${RECONCILIATION_ENABLED:true}
+    cron: ${RECONCILIATION_CRON:0 */15 * * * *}
 
 server:
   port: 8080
+

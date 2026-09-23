@@ -14,6 +14,8 @@ public enum ErrorCode {
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "Account does not exist"),
     TRANSACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Transaction does not exist"),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Invalid request payload or headers"),
+    VELOCITY_LIMIT_EXCEEDED(HttpStatus.UNPROCESSABLE_ENTITY, "Velocity limit exceeded for account within sliding time window"),
+    VELOCITY_CHECK_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "Velocity check service unavailable - failing closed"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 
     private final HttpStatus httpStatus;

@@ -39,6 +39,7 @@ public class TransferApplicationService {
     private final LedgerRepository ledgerRepository;
     private final OutboxRepository outboxRepository;
     private final TransferDomainService transferDomainService;
+    private final com.platform.velocity.VelocityCheckService velocityCheckService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
 
@@ -48,6 +49,7 @@ public class TransferApplicationService {
             LedgerRepository ledgerRepository,
             OutboxRepository outboxRepository,
             TransferDomainService transferDomainService,
+            com.platform.velocity.VelocityCheckService velocityCheckService,
             ObjectMapper objectMapper,
             PlatformTransactionManager transactionManager
     ) {
@@ -56,6 +58,7 @@ public class TransferApplicationService {
         this.ledgerRepository = ledgerRepository;
         this.outboxRepository = outboxRepository;
         this.transferDomainService = transferDomainService;
+        this.velocityCheckService = velocityCheckService;
         this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -80,6 +83,11 @@ public class TransferApplicationService {
         Money amount = Money.ofPaise(amountPaise, currency);
         String requestHash = IdempotencyKey.computeRequestHash(sourceAccountId, destinationAccountId, amountPaise, currency);
         UUID transactionId = UUID.randomUUID();
+
+        // REQ-060, REQ-061, REQ-062, REQ-063: Pre-transaction velocity control check before Transaction Coordinator
+        if (velocityCheckService != null) {
+            velocityCheckService.checkAndRecord(sourceAccountId, amountPaise, idempotencyKey);
+        }
 
         return transactionTemplate.execute(status -> {
             // 1. Check for existing transaction under this idempotency key

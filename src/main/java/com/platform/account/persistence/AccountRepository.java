@@ -102,4 +102,14 @@ public class AccountRepository {
                 """;
         return jdbcTemplate.update(sql, newBalance, accountId, currentVersion);
     }
+
+    public int updateStatus(UUID accountId, AccountStatus status) {
+        String sql = "UPDATE accounts SET status = ? WHERE id = ?";
+        return jdbcTemplate.update(sql, status.name(), accountId);
+    }
+
+    public int updateBalance(UUID accountId, long newBalance) {
+        String sql = "UPDATE accounts SET cached_balance = ?, version = version + 1 WHERE id = ?";
+        return jdbcTemplate.update(sql, newBalance, accountId);
+    }
 }

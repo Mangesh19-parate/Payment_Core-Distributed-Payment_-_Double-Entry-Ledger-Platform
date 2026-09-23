@@ -25,6 +25,12 @@ app:
     topics:
       transaction-posted: transactions.posted
       account-balance-changed: accounts.balance-changed
+  velocity:
+    window-seconds: 3600
+    max-amount-paise: 50000000
+  reconciliation:
+    enabled: false
+    cron: "0 0 0 1 1 ?"
 
 server:
   port: -1

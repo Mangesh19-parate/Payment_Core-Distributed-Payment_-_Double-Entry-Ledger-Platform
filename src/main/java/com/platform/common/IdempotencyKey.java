@@ -16,23 +16,11 @@ public final class IdempotencyKey {
      * Pattern: sourceAccountId|destinationAccountId|amount|currency
      */
     public static String computeRequestHash(UUID sourceAccountId, UUID destinationAccountId, long amount, String currency) {
-        Objects.requireNonNull(sourceAccountId, "sourceAccountId must not be null");
-        Objects.requireNonNull(destinationAccountId, "destinationAccountId must not be null");
-        Objects.requireNonNull(currency, "currency must not be null");
-
-        String canonicalString = String.format("%s|%s|%d|%s",
-                sourceAccountId,
-                destinationAccountId,
-                amount,
-                currency
-        );
-
+        String canonical = sourceAccountId + "|" + destinationAccountId + "|" + amount + "|" + currency;
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(canonicalString.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashBytes);
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm unavailable", e);
+            throw new IllegalStateException("SHA-256 unavailable", e);
         }
     }
 }
