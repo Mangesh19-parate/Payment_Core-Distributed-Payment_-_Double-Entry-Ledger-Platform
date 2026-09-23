@@ -95,6 +95,88 @@ public class TransactionRepository {
         }
     }
 
+    public Optional<UUID> tryInsertAwaitingApprovalTransaction(
+            UUID id,
+            UUID principalId,
+            String idempotencyKey,
+            String requestHash,
+            UUID sourceAccountId,
+            UUID destinationAccountId,
+            long amount,
+            String currency
+    ) {
+        String sql = """
+                INSERT INTO transactions (
+                    id, principal_id, idempotency_key, request_hash,
+                    source_account_id, destination_account_id, amount, currency,
+                    status, type, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'AWAITING_APPROVAL', 'TRANSFER', ?)
+                ON CONFLICT (principal_id, idempotency_key) DO NOTHING
+                RETURNING id
+                """;
+        try {
+            UUID insertedId = jdbcTemplate.queryForObject(
+                    sql,
+                    UUID.class,
+                    id,
+                    principalId,
+                    idempotencyKey,
+                    requestHash,
+                    sourceAccountId,
+                    destinationAccountId,
+                    amount,
+                    currency,
+                    Timestamp.from(Instant.now())
+            );
+            return Optional.ofNullable(insertedId);
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    public Optional<UUID> tryInsertReversalTransaction(
+            UUID id,
+            UUID principalId,
+            String idempotencyKey,
+            String requestHash,
+            UUID sourceAccountId,
+            UUID destinationAccountId,
+            long amount,
+            String currency,
+            UUID referenceTxnId
+    ) {
+        String sql = """
+                INSERT INTO transactions (
+                    id, principal_id, idempotency_key, request_hash,
+                    source_account_id, destination_account_id, amount, currency,
+                    status, type, reference_txn_id, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CREATED', 'REVERSAL', ?, ?)
+                ON CONFLICT (principal_id, idempotency_key) DO NOTHING
+                RETURNING id
+                """;
+        try {
+            UUID insertedId = jdbcTemplate.queryForObject(
+                    sql,
+                    UUID.class,
+                    id,
+                    principalId,
+                    idempotencyKey,
+                    requestHash,
+                    sourceAccountId,
+                    destinationAccountId,
+                    amount,
+                    currency,
+                    referenceTxnId,
+                    Timestamp.from(Instant.now())
+            );
+            return Optional.ofNullable(insertedId);
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
     public Optional<Transaction> findByPrincipalAndIdempotencyKey(UUID principalId, String idempotencyKey) {
         String sql = """
                 SELECT id, principal_id, idempotency_key, request_hash,

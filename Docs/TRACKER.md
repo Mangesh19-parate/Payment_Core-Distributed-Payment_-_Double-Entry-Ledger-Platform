@@ -57,11 +57,11 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-100 | Pre-Coordinator auth checks | NOT_STARTED | — | |
-| REQ-101 | Reversal authorization + unique index | NOT_STARTED | — | |
-| REQ-102 | Maker-checker threshold approval | NOT_STARTED | — | |
+| REQ-100 | Pre-Coordinator auth checks | VERIFIED | Yes | `TransferApplicationService`, `FundingAndTransferFlowTest` |
+| REQ-101 | Reversal authorization + unique index | VERIFIED | Yes | `TransactionReversalTest.testTransactionReversalFlow` |
+| REQ-102 | Maker-checker threshold approval | VERIFIED | Yes | `MakerCheckerApprovalTest.testMakerCheckerFlow` |
 | REQ-103 | Append-only audit log | VERIFIED | Yes | `V9__audit_log.sql`, `AuditLogService`, `ReconciliationDriftTest` |
-| REQ-104 | Rate limit by principal + IP | NOT_STARTED | — | |
+| REQ-104 | Rate limit by principal + IP | VERIFIED | Yes | `RateLimitingFilter`, `SecurityAndRateLimitingTest` |
 
 ## Non-functional
 
