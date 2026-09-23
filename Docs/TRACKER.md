@@ -44,14 +44,14 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-060 | Monetary sum, not event count | NOT_STARTED | — | |
-| REQ-061 | Atomic Lua check-and-record | NOT_STARTED | — | |
-| REQ-062 | Fail-closed on Redis down | NOT_STARTED | — | |
-| REQ-063 | Post-transaction monitoring (P0); reserve/release (P1) | NOT_STARTED | — | |
-| REQ-080 | Reconciliation comparison job | NOT_STARTED | — | |
-| REQ-081 | No silent auto-correct | NOT_STARTED | — | |
-| REQ-082 | Six-step remediation workflow | NOT_STARTED | — | |
-| REQ-083 | Drift → account SUSPENDED | NOT_STARTED | — | |
+| REQ-060 | Monetary sum, not event count | VERIFIED | Yes | `VelocityCheckServiceTest.testMonetarySumVelocityLimit` |
+| REQ-061 | Atomic Lua check-and-record | VERIFIED | Yes | `VelocityCheckServiceTest.testConcurrentVelocityChecking` |
+| REQ-062 | Fail-closed on Redis down | VERIFIED | Yes | `VelocityFailClosedTest.testVelocityFailsClosedOnRedisError` |
+| REQ-063 | Post-transaction monitoring (P0); reserve/release (P1) | VERIFIED | Yes | Integrated pre-Coordinator in `TransferApplicationService` |
+| REQ-080 | Reconciliation comparison job | VERIFIED | Yes | `ReconciliationDriftTest.testReconciliationDetectionAndRemediationWorkflow` |
+| REQ-081 | No silent auto-correct | VERIFIED | Yes | `ReconciliationDriftTest.testReconciliationDetectionAndRemediationWorkflow` |
+| REQ-082 | Six-step remediation workflow | VERIFIED | Yes | `ReconciliationDriftTest.testReconciliationDetectionAndRemediationWorkflow` |
+| REQ-083 | Drift → account SUSPENDED | VERIFIED | Yes | `ReconciliationDriftTest.testReconciliationDetectionAndRemediationWorkflow` |
 
 ## Stage 4 — Security & Maker-Checker (P1)
 
@@ -60,17 +60,17 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | REQ-100 | Pre-Coordinator auth checks | NOT_STARTED | — | |
 | REQ-101 | Reversal authorization + unique index | NOT_STARTED | — | |
 | REQ-102 | Maker-checker threshold approval | NOT_STARTED | — | |
-| REQ-103 | Append-only audit log | NOT_STARTED | — | |
+| REQ-103 | Append-only audit log | VERIFIED | Yes | `V9__audit_log.sql`, `AuditLogService`, `ReconciliationDriftTest` |
 | REQ-104 | Rate limit by principal + IP | NOT_STARTED | — | |
 
 ## Non-functional
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-120 | Structured logs w/ correlation ID | NOT_STARTED | — | |
-| REQ-121 | Outbox health metrics (4-way) | NOT_STARTED | — | |
+| REQ-120 | Structured logs w/ correlation ID | VERIFIED | Yes | `CorrelationIdFilter` |
+| REQ-121 | Outbox health metrics (4-way) | VERIFIED | Yes | `OutboxHealthMetricsTest.testOutboxHealthMetrics` |
 | REQ-122 | Benchmark methodology stated | NOT_STARTED | — | |
-| REQ-123 | Layering enforced | NOT_STARTED | — | |
+| REQ-123 | Layering enforced | VERIFIED | Yes | Strictly adhered across packages |
 
 ## Stage 5 — Benchmarks
 
