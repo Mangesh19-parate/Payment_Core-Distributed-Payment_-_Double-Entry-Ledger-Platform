@@ -69,18 +69,18 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 |---|---|---|---|---|
 | REQ-120 | Structured logs w/ correlation ID | VERIFIED | Yes | `CorrelationIdFilter` |
 | REQ-121 | Outbox health metrics (4-way) | VERIFIED | Yes | `OutboxHealthMetricsTest.testOutboxHealthMetrics` |
-| REQ-122 | Benchmark methodology stated | NOT_STARTED | — | |
+| REQ-122 | Benchmark methodology stated | VERIFIED | Yes | `BenchmarkHarness`, JSON artifacts in `target/benchmark-results/` |
 | REQ-123 | Layering enforced | VERIFIED | Yes | Strictly adhered across packages |
 
 ## Stage 5 — Benchmarks
 
 | Item | Status | Artifact location | Notes |
 |---|---|---|---|
-| Hot-account vs. independent-account | NOT_STARTED | `benchmarks/HotAccountContentionBenchmark.java` | |
-| Idempotency mechanism comparison | NOT_STARTED | `benchmarks/IdempotencyMechanismBenchmark.java` | |
-| Outbox vs. direct-publish | NOT_STARTED | `benchmarks/OutboxFailureBenchmark.java` | |
-| Redis velocity variants | NOT_STARTED | — | |
-| Connection pool saturation | NOT_STARTED | — | |
+| Hot-account vs. independent-account | VERIFIED | `benchmarks/HotAccountContentionBenchmark.java` | `target/benchmark-results/hotaccountcontention_*.json` |
+| Idempotency mechanism comparison | VERIFIED | `benchmarks/IdempotencyMechanismBenchmark.java` | `target/benchmark-results/idempotencymechanism_*.json` |
+| Outbox vs. direct-publish | VERIFIED | `benchmarks/OutboxFailureBenchmark.java` | `target/benchmark-results/outboxfailurecomparison_*.json` |
+| Redis velocity variants | VERIFIED | `benchmarks/RedisVelocityBenchmark.java` | `target/benchmark-results/redisvelocityvariants_*.json` |
+| Connection pool saturation | VERIFIED | `benchmarks/ConnectionPoolSaturationBenchmark.java` | `target/benchmark-results/connectionpoolsaturation_*.json` |
 
 ## Stage 6 — Demo layer
 

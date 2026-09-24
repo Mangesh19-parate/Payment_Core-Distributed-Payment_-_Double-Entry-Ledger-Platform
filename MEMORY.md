@@ -14,6 +14,7 @@ Persistent context across sessions. This file exists so decisions don't get reli
 - **`SYSTEM_CASH` is the only legal funding counterparty**, exempt from the sufficiency check, permitted a negative balance by design (represents external capital). Without it, there is no way to seed an account without violating the ledger invariant — this was a real, late-discovered gap.
 - **Sequential ascending UUID lock acquisition before mutating SQL**: Acquiring row locks via `findAccountsForUpdate` before inserting transaction rows prevents foreign key `KEY SHARE` lock inversions that caused deadlock in PostgreSQL during opposing concurrent transfers.
 - **Foreign keys in transaction and ledger tables are DEFERRABLE INITIALLY DEFERRED**: Prevents intermediate statement-level lock acquisition on referenced accounts during multi-step transactions.
+- **`SYSTEM_CASH` is exempt from customer velocity and maker-checker threshold gates**: Funding platform capital is an administrative platform action, not a customer transaction; subjecting it to velocity checks or employee maker-checker would block system account initialization.
 
 ## Bugs caught during the design process (told precisely, worth keeping as real examples)
 

@@ -31,6 +31,9 @@ public class MakerCheckerApprovalTest extends BaseIntegrationTest {
     private ApprovalApplicationService approvalApplicationService;
 
     @Autowired
+    private com.platform.account.application.AccountApplicationService accountApplicationService;
+
+    @Autowired
     private ApprovalRepository approvalRepository;
 
     @Autowired
@@ -51,7 +54,7 @@ public class MakerCheckerApprovalTest extends BaseIntegrationTest {
         accountRepository.insertAccount(new Account(srcId, makerId, "INR", 0L, 0L, AccountStatus.ACTIVE, false, Instant.now()));
         accountRepository.insertAccount(new Account(dstId, checkerId, "INR", 0L, 0L, AccountStatus.ACTIVE, false, Instant.now()));
 
-        transferApplicationService.transfer(makerId, "fund-mc-" + UUID.randomUUID(), SYSTEM_CASH_ID, srcId, 50_000_000L, "INR");
+        accountApplicationService.fundAccount(makerId, "fund-mc-" + UUID.randomUUID(), srcId, 50_000_000L);
 
         // 2. Submit transfer above ₹1,00,000 threshold (e.g. 15,000,000 paise = ₹1,50,000)
         long largeAmountPaise = 15_000_000L;
@@ -122,7 +125,7 @@ public class MakerCheckerApprovalTest extends BaseIntegrationTest {
 
         accountRepository.insertAccount(new Account(srcId, makerId, "INR", 0L, 0L, AccountStatus.ACTIVE, false, Instant.now()));
         accountRepository.insertAccount(new Account(dstId, checkerId, "INR", 0L, 0L, AccountStatus.ACTIVE, false, Instant.now()));
-        transferApplicationService.transfer(makerId, "fund-mc-rej-" + UUID.randomUUID(), SYSTEM_CASH_ID, srcId, 50_000_000L, "INR");
+        accountApplicationService.fundAccount(makerId, "fund-mc-rej-" + UUID.randomUUID(), srcId, 50_000_000L);
 
         TransferResult result = transferApplicationService.transfer(
                 makerId, "large-tx-rej-" + UUID.randomUUID(), srcId, dstId, 20_000_000L, "INR"
