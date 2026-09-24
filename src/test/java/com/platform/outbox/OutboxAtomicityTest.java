@@ -43,7 +43,7 @@ public class OutboxAtomicityTest extends BaseIntegrationTest {
         Account src = accountApplicationService.createAccount(principalId, "INR");
         Account dst = accountApplicationService.createAccount(principalId, "INR");
 
-        accountApplicationService.fundAccount(src.id(), 100_000L, UUID.randomUUID().toString());
+        accountApplicationService.fundAccount(principalId, UUID.randomUUID().toString(), src.id(), 100_000L);
 
         // Count existing outbox events before transfer
         Integer initialCount = testJdbcTemplate.queryForObject("SELECT COUNT(*) FROM outbox_events", Integer.class);
@@ -75,7 +75,7 @@ public class OutboxAtomicityTest extends BaseIntegrationTest {
         assertThat(txnPostedRow.get("attempt_count")).isEqualTo(0);
 
         EventEnvelope<TransactionPostedEvent> txnEnvelope = objectMapper.readValue(
-                (String) txnPostedRow.get("payload"),
+                txnPostedRow.get("payload").toString(),
                 new TypeReference<>() {}
         );
         assertThat(txnEnvelope.eventType()).isEqualTo("TransactionPosted");
@@ -91,7 +91,7 @@ public class OutboxAtomicityTest extends BaseIntegrationTest {
         for (Map<String, Object> row : balanceRows) {
             assertThat(row.get("status")).isEqualTo("PENDING");
             EventEnvelope<AccountBalanceChangedEvent> balanceEnvelope = objectMapper.readValue(
-                    (String) row.get("payload"),
+                    row.get("payload").toString(),
                     new TypeReference<>() {}
             );
             assertThat(balanceEnvelope.payload().transactionId()).isEqualTo(posted.transactionId());
@@ -106,7 +106,7 @@ public class OutboxAtomicityTest extends BaseIntegrationTest {
         Account src = accountApplicationService.createAccount(principalId, "INR");
         Account dst = accountApplicationService.createAccount(principalId, "INR");
 
-        accountApplicationService.fundAccount(src.id(), 1_000L, UUID.randomUUID().toString());
+        accountApplicationService.fundAccount(principalId, UUID.randomUUID().toString(), src.id(), 1_000L);
 
         Integer countBefore = testJdbcTemplate.queryForObject("SELECT COUNT(*) FROM outbox_events", Integer.class);
 

@@ -90,8 +90,8 @@ public class TransferApplicationService {
         String requestHash = IdempotencyKey.computeRequestHash(sourceAccountId, destinationAccountId, amountPaise, currency);
         UUID transactionId = UUID.randomUUID();
 
-        // REQ-060, REQ-061, REQ-062, REQ-063: Pre-transaction velocity control check before Transaction Coordinator
-        if (velocityCheckService != null) {
+        // REQ-060, REQ-061, REQ-062, REQ-063: Pre-transaction velocity control check before Transaction Coordinator (exempt SYSTEM_CASH)
+        if (velocityCheckService != null && !com.platform.account.application.AccountApplicationService.SYSTEM_CASH_ACCOUNT_ID.equals(sourceAccountId)) {
             velocityCheckService.checkAndRecord(sourceAccountId, amountPaise, idempotencyKey);
         }
 
@@ -112,8 +112,8 @@ public class TransferApplicationService {
                 );
             }
 
-            // Maker-Checker threshold check (REQ-102)
-            if (amountPaise > makerCheckerThresholdPaise) {
+            // Maker-Checker threshold check (REQ-102) - only applies to regular customer/user transfers, not SYSTEM_CASH funding
+            if (amountPaise > makerCheckerThresholdPaise && !com.platform.account.application.AccountApplicationService.SYSTEM_CASH_ACCOUNT_ID.equals(sourceAccountId)) {
                 Optional<UUID> awaitingTxnId = transactionRepository.tryInsertAwaitingApprovalTransaction(
                         transactionId,
                         principalId,

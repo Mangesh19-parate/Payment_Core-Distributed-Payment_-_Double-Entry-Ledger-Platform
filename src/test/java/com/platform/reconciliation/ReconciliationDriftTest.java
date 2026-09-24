@@ -36,7 +36,7 @@ public class ReconciliationDriftTest extends BaseIntegrationTest {
     @Autowired
     private TransferApplicationService transferApplicationService;
 
-    private static final UUID SYSTEM_CASH_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID SYSTEM_CASH_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     @Test
     @DisplayName("REQ-080, REQ-081, REQ-082, REQ-083: Reconciliation detects balance drift, suspends account, rejects silent fix, and enforces 6-step remediation")
@@ -87,10 +87,11 @@ public class ReconciliationDriftTest extends BaseIntegrationTest {
         UUID destId = UUID.randomUUID();
         accountRepository.insertAccount(new Account(destId, userId, "INR", 0L, 0L, AccountStatus.ACTIVE, false, Instant.now()));
 
-        BusinessException suspendedEx = assertThrows(BusinessException.class, () ->
-                transferApplicationService.transfer(userId, "tx-blocked-" + UUID.randomUUID(), accountId, destId, 10_000L, "INR")
+        TransferResult suspendedResult = transferApplicationService.transfer(
+                userId, "tx-blocked-" + UUID.randomUUID(), accountId, destId, 10_000L, "INR"
         );
-        assertEquals(ErrorCode.ACCOUNT_SUSPENDED, suspendedEx.getErrorCode());
+        assertTrue(suspendedResult instanceof TransferResult.BusinessFailure);
+        assertEquals(ErrorCode.ACCOUNT_SUSPENDED, ((TransferResult.BusinessFailure) suspendedResult).errorCode());
 
         // 8. REQ-082: Explicit 6-step audited remediation workflow
         long trueLedgerBalance = 100_000L;

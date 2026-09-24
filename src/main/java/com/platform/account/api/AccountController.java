@@ -58,6 +58,14 @@ public class AccountController {
                     null,
                     p.postedAt()
             ));
+            case TransferResult.AwaitingApproval a -> ResponseEntity.status(HttpStatus.ACCEPTED).body(new TransferResponse(
+                    a.transactionId(),
+                    com.platform.transfer.domain.TransactionStatus.AWAITING_APPROVAL,
+                    a.amount().amount(),
+                    a.amount().currency(),
+                    "Funding requires approval",
+                    a.createdAt()
+            ));
             case TransferResult.BusinessFailure f -> throw new BusinessException(f.errorCode(), f.reason());
             case TransferResult.IdempotentReplay r -> ResponseEntity.status(
                     r.status() == com.platform.transfer.domain.TransactionStatus.POSTED ? HttpStatus.OK : HttpStatus.UNPROCESSABLE_ENTITY

@@ -51,6 +51,19 @@ public abstract class BaseIntegrationTest {
     @org.springframework.boot.test.mock.mockito.MockBean
     protected org.springframework.kafka.core.KafkaTemplate<String, String> kafkaTemplate;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    protected org.springframework.data.redis.core.StringRedisTemplate testRedisTemplate;
+
+    @org.junit.jupiter.api.BeforeEach
+    public void baseCleanRedis() {
+        if (testRedisTemplate != null && testRedisTemplate.getConnectionFactory() != null) {
+            try {
+                var conn = testRedisTemplate.getConnectionFactory().getConnection();
+                conn.serverCommands().flushDb();
+            } catch (Exception ignored) {}
+        }
+    }
+
     protected UUID createTestUser() {
         UUID userId = UUID.randomUUID();
         testJdbcTemplate.update(
