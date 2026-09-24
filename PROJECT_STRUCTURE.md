@@ -62,6 +62,10 @@ payment-ledger-platform/
 │   ├── audit/                         # OWNS: audit_log — called by other modules, owns nothing else
 │   │   └── AuditLogService.java
 │   │
+│   ├── fraud/                         # P2: Fraud Ring & Mule Detection (Graph analysis)
+│   │   ├── api/FraudController.java
+│   │   └── domain/FraudRingDetectionService.java
+│   │
 │   ├── demo/                          # Stage 6 Demo Layer (Read-only projections & test runners)
 │   │   ├── api/DemoController.java
 │   │   └── application/DemoService.java
@@ -98,6 +102,8 @@ payment-ledger-platform/
 │   │   ├── DeterministicDeadlockTest.java          # CyclicBarrier-based
 │   │   ├── IdempotencyRaceTest.java
 │   │   └── LedgerBalancePropertyTest.java          # jqwik
+│   ├── fraud/
+│   │   └── FraudRingDetectionTest.java             # P2: Circular flow & mule detection verification
 │   ├── demo/
 │   │   └── DemoApiTest.java                        # Stage 6 demo endpoints verification
 │   ├── outbox/

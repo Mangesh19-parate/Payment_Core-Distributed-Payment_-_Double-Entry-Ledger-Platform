@@ -92,15 +92,15 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | Distributed Transaction Timeline | VERIFIED | Stage 2 + REQ-120 | End-to-end trace with outbox & audit entries |
 | Reconciliation Incident Center | VERIFIED | Stage 3 | Authoritative ledger comparison & 6-step remediation workflow |
 
-## P2 (do not start)
+## P2 Items
 
-| Item | Status |
-|---|---|
-| Fraud ring detection | DEFERRED |
-| Microservice extraction | DEFERRED |
-| Debezium/CDC relay | DEFERRED |
-| Multi-currency | DEFERRED |
-| Account sharding / actor model | DEFERRED |
+| Item | Status | Notes |
+|---|---|---|
+| Fraud ring detection | VERIFIED | `FraudRingDetectionTest` (Directed cycle + pass-through mule detection) |
+| Microservice extraction | DEFERRED | Preserved as modular monolith |
+| Debezium/CDC relay | DEFERRED | Polling SKIP LOCKED relay operational |
+| Multi-currency | DEFERRED | INR-only v1 |
+| Account sharding / actor model | DEFERRED | Standard row locking sufficient |
 
 ## How to update this file
 
