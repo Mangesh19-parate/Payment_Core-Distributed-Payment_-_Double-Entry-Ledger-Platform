@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaymentCore — Double-Entry Ledger & Distributed Payments Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="header-container">
+            <div class="brand">
+                <span class="brand-badge">PROVABLE CORRECTNESS</span>
+                <div class="brand-title">Payment<span>Core</span></div>
+            </div>
+            <nav id="main-nav">
+                <button class="nav-tab active" data-tab="invariants">🛡️ Ledger Monitor</button>
+                <button class="nav-tab" data-tab="failure-lab">🧪 Failure Lab</button>
+                <button class="nav-tab" data-tab="benchmarks">📊 Observatory</button>
+                <button class="nav-tab" data-tab="timeline">⚡ Timeline</button>
+                <button class="nav-tab" data-tab="reconciliation">⚖️ Reconciliation</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+
+        <!-- SCREEN 2: Ledger Integrity Monitor -->
+        <section id="invariants" class="tab-pane active">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Ledger Integrity Monitor</h1>
+                    <p class="section-desc">Real-time validation of all 7 database-level financial invariants. The ledger is the sole source of truth; cached balances are protected projections.</p>
+                </div>
+                <button class="btn btn-secondary" onclick="loadInvariants()">🔄 Refresh Status</button>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Global Equilibrium</span>
+                    <span id="stat-equilibrium-status" class="stat-value text-emerald">100% Balanced</span>
+                    <span class="stat-indicator text-emerald">✓ SUM(Debit) = SUM(Credit)</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Total Transactions</span>
+                    <span id="stat-total-txns" class="stat-value text-indigo">0</span>
+                    <span class="stat-indicator text-muted">Immutable posted rows</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Ledger Entries</span>
+                    <span id="stat-total-entries" class="stat-value text-cyan">0</span>
+                    <span class="stat-indicator text-muted">Double-entry audit records</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Active Accounts</span>
+                    <span id="stat-total-accounts" class="stat-value text-amber">0</span>
+                    <span class="stat-indicator text-muted">Protected projections</span>
+                </div>
+            </div>
+
+            <!-- Invariant Check Cards Grid -->
+            <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem;">System Invariants (REQ-001 – REQ-010)</h2>
+            <div id="invariants-cards-grid" class="invariants-grid">
+                <!-- Dynamically Populated -->
+            </div>
+
+            <!-- Recent Transactions Table -->
+            <h2 style="font-size: 1.15rem; font-weight: 700; margin: 2rem 0 1rem;">Recent Transactions & Entry Verification</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Currency</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-transactions-tbody">
+                        <!-- Dynamically Populated -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SCREEN 1: Failure Lab -->
+        <section id="failure-lab" class="tab-pane">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Failure Lab</h1>
+                    <p class="section-desc">Interactive execution of live failure injection scenarios. Observe how pessimistic locking, database constraints, and transactional outboxes resolve races and network failures.</p>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario ID</th>
+                            <th>Failure Mechanism</th>
+                            <th>Target Invariant</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 700; color: var(--accent-cyan);">RACE-01</td>
+                            <td>
+                                <strong>Duplicate-Request Race</strong>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Fires two identical transfer requests concurrently with the same Idempotency-Key.</div>
+                                <div id="logs-duplicate-race" class="terminal-box" style="display: none;"></div>
+                            </td>
+                            <td><code>REQ-023</code> DB Unique Key</td>
+                            <td><span id="status-duplicate-race" class="badge badge-neutral">Ready</span></td>
+                            <td><button id="btn-duplicate-race" class="btn" onclick="runScenario('duplicate-race')">▶ Run Test</button></td>
+                        </tr>
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 700; color: var(--accent-cyan);">CONC-02</td>
+                            <td>
+                                <strong>Concurrent Over-Withdrawal</strong>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">5 concurrent withdrawal attempts against ₹500 balance (Total requested = ₹1,000).</div>
+                                <div id="logs-concurrent-withdrawal" class="terminal-box" style="display: none;"></div>
+                            </td>
+                            <td><code>REQ-020</code> Lock Ordering</td>
+                            <td><span id="status-concurrent-withdrawal" class="badge badge-neutral">Ready</span></td>
+                            <td><button id="btn-concurrent-withdrawal" class="btn" onclick="runScenario('concurrent-withdrawal')">▶ Run Test</button></td>
+                        </tr>
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 700; color: var(--accent-cyan);">DEAD-03</td>
+                            <td>
+                                <strong>Deterministic Deadlock Prevention</strong>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Opposing concurrent transfers (A → B and B → A) executed simultaneously.</div>
+                                <div id="logs-deadlock-prevention" class="terminal-box" style="display: none;"></div>
+                            </td>
+                            <td><code>REQ-020</code> Ascending ID Lock</td>
+                            <td><span id="status-deadlock-prevention" class="badge badge-neutral">Ready</span></td>
+                            <td><button id="btn-deadlock-prevention" class="btn" onclick="runScenario('deadlock-prevention')">▶ Run Test</button></td>
+                        </tr>
+                        <tr>
+                            <td style="font-family: monospace; font-weight: 700; color: var(--accent-cyan);">OUTB-04</td>
+                            <td>
+                                <strong>Transactional Outbox Dual-Write Prevention</strong>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Proves ledger write and outbox event commit in a single atomic database transaction.</div>
+                                <div id="logs-outbox-atomicity" class="terminal-box" style="display: none;"></div>
+                            </td>
+                            <td><code>REQ-040</code> Outbox Atomicity</td>
+                            <td><span id="status-outbox-atomicity" class="badge badge-neutral">Ready</span></td>
+                            <td><button id="btn-outbox-atomicity" class="btn" onclick="runScenario('outbox-atomicity')">▶ Run Test</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: Hot Account Contention Observatory -->
+        <section id="benchmarks" class="tab-pane">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Contention & Concurrency Observatory</h1>
+                    <p class="section-desc">Performance measurements and trade-off comparisons exported from Stage 5 benchmark suites per REQ-122 methodology standards.</p>
+                </div>
+                <button class="btn btn-secondary" onclick="loadBenchmarks()">🔄 Reload Benchmarks</button>
+            </div>
+
+            <div id="benchmarks-container" class="bench-grid">
+                <!-- Dynamically Populated from JSON Artifacts -->
+            </div>
+        </section>
+
+        <!-- SCREEN 4: Distributed Transaction Timeline -->
+        <section id="timeline" class="tab-pane">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Distributed Transaction Timeline</h1>
+                    <p class="section-desc">End-to-end chronological execution sequence for any transaction across the double-entry ledger, transactional outbox, Kafka relay, and audit trail.</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 2rem;">
+                <div class="input-group">
+                    <label for="timeline-input-txid" style="font-weight: 600; font-size: 0.9rem;">Transaction ID:</label>
+                    <input type="text" id="timeline-input-txid" class="form-control" style="width: 360px;" placeholder="Enter UUID...">
+                    <button class="btn" onclick="fetchTimeline()">Inspect Timeline</button>
+                </div>
+            </div>
+
+            <div id="timeline-container" class="card">
+                <!-- Dynamically Populated -->
+            </div>
+        </section>
+
+        <!-- SCREEN 5: Reconciliation Incident Center -->
+        <section id="reconciliation" class="tab-pane">
+            <div class="section-header">
+                <div>
+                    <h1 class="section-title">Reconciliation Incident Center</h1>
+                    <p class="section-desc">Authoritative ledger comparison. Enforces the zero silent auto-correction policy (REQ-081) and structured 6-step audited remediation workflow (REQ-082).</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span id="recon-drift-badge" class="badge badge-success">0 DRIFT</span>
+                    <button class="btn btn-secondary" onclick="loadReconciliation()">🔄 Scan Accounts</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Account ID</th>
+                            <th>Cached Balance</th>
+                            <th>Ledger Sum (Authoritative)</th>
+                            <th>Delta / Discrepancy</th>
+                            <th>Account Status</th>
+                            <th>Remediation Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reconciliation-tbody">
+                        <!-- Dynamically Populated -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Ledger Entry Drilldown -->
+    <div id="ledger-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Transaction Ledger Entries</h3>
+                <button class="close-btn" onclick="closeLedgerModal()">&times;</button>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Transaction ID: <span id="ledger-modal-txn-id" style="font-family: monospace; color: var(--accent-cyan); font-weight: 700;"></span>
+            </p>
+            <div id="ledger-entries-drilldown" class="table-container"></div>
+        </div>
+    </div>
+
+    <!-- Modal: 6-Step Remediation Workflow -->
+    <div id="remediation-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">6-Step Remediation Workflow</h3>
+                <button class="close-btn" onclick="closeRemediationModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 1.25rem;">
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                    Account: <strong id="recon-modal-acc-id" style="color: var(--accent-cyan);"></strong>
+                </p>
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.85rem;">
+                    <span>Corrupted Cached: <strong id="recon-modal-cached" style="color: var(--accent-rose);"></strong></span>
+                    <span>True Ledger Sum: <strong id="recon-modal-ledger" style="color: var(--accent-emerald);"></strong></span>
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; font-size: 0.8rem; line-height: 1.6; margin-bottom: 1.25rem;">
+                <div>1. <strong>DETECT:</strong> Ledger divergence identified via scheduled scan</div>
+                <div>2. <strong>FLAG:</strong> Incident generated in database</div>
+                <div>3. <strong>ALERT:</strong> Security audit log updated</div>
+                <div>4. <strong>INVESTIGATE:</strong> Authoritative sum confirmed from ledger entries</div>
+                <div>5. <strong>CORRECT:</strong> Explicit update to restore verified ledger balance</div>
+                <div>6. <strong>RECORD:</strong> Write audited resolution record and unsuspend account</div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button class="btn btn-secondary" onclick="closeRemediationModal()">Cancel</button>
+                <button class="btn" onclick="executeRemediation()">Execute Remediation</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -86,11 +86,11 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | Screen | Status | Depends on | Notes |
 |---|---|---|---|
-| Failure Lab | NOT_STARTED | Stage 1–3 failure tests existing | |
-| Ledger Integrity Monitor | NOT_STARTED | Stage 1 invariants | |
-| Hot Account Contention Observatory | NOT_STARTED | Stage 5 benchmark run | |
-| Distributed Transaction Timeline | NOT_STARTED | Stage 2 + REQ-120 | |
-| Reconciliation Incident Center | NOT_STARTED | Stage 3 | |
+| Failure Lab | VERIFIED | Stage 1–3 failure tests existing | Live scenarios REST API + UI runners |
+| Ledger Integrity Monitor | VERIFIED | Stage 1 invariants | Real-time 7 invariant cards + stats + audit entries drilldown |
+| Hot Account Contention Observatory | VERIFIED | Stage 5 benchmark run | Stage 5 JSON artifacts visualization (bar charts + comparison stats) |
+| Distributed Transaction Timeline | VERIFIED | Stage 2 + REQ-120 | End-to-end trace with outbox & audit entries |
+| Reconciliation Incident Center | VERIFIED | Stage 3 | Authoritative ledger comparison & 6-step remediation workflow |
 
 ## P2 (do not start)
 
