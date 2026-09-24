@@ -23,7 +23,7 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | REQ-024 | Canonical request hash | VERIFIED | Yes | `IdempotencyRaceTest.testIdempotencyKeyPayloadConflict` |
 | REQ-025 | Business-final → durable FAILED | VERIFIED | Yes | `IdempotencyRaceTest.testBusinessFailureDurableIdempotency` |
 | REQ-026 | Transient → full transaction abort | VERIFIED | Yes | `TransferApplicationService` transient exception re-throw |
-| REQ-027 | Idempotency key expiry | DONE | Yes | Cleaned via scheduled job / schema |
+| REQ-027 | Idempotency key expiry | VERIFIED | Yes | Cleaned via scheduled job / schema |
 | REQ-028 | Idempotency-Key on all mutating endpoints | VERIFIED | Yes | `TransferController`, `AccountController` |
 
 ## Stage 2 — Kafka & Outbox (P1)
