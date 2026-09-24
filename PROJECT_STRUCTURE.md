@@ -62,6 +62,10 @@ payment-ledger-platform/
 │   ├── audit/                         # OWNS: audit_log — called by other modules, owns nothing else
 │   │   └── AuditLogService.java
 │   │
+│   ├── demo/                          # Stage 6 Demo Layer (Read-only projections & test runners)
+│   │   ├── api/DemoController.java
+│   │   └── application/DemoService.java
+│   │
 │   ├── security/                      # cross-cutting: JWT auth, authorization checks
 │   │   ├── AuthenticationFilter.java
 │   │   └── AuthorizationService.java               # the AUTHORIZE(...) rules from spec §6
@@ -72,16 +76,21 @@ payment-ledger-platform/
 │       └── IdempotencyKey.java
 │
 ├── src/main/resources/
-│   └── db/migration/                  # Flyway — one migration per logical change, see BACKEND_SCHEMA.md
-│       ├── V1__users.sql
-│       ├── V2__accounts.sql
-│       ├── V3__transactions.sql
-│       ├── V4__ledger_entries.sql
-│       ├── V5__ledger_invariant_triggers.sql
-│       ├── V6__transaction_approvals.sql
-│       ├── V7__outbox_events.sql
-│       ├── V8__processed_events.sql
-│       └── V9__audit_log.sql
+│   ├── db/migration/                  # Flyway — one migration per logical change, see BACKEND_SCHEMA.md
+│   │   ├── V1__users.sql
+│   │   ├── V2__accounts.sql
+│   │   ├── V3__transactions.sql
+│   │   ├── V4__ledger_entries.sql
+│   │   ├── V5__ledger_invariant_triggers.sql
+│   │   ├── V6__transaction_approvals.sql
+│   │   ├── V7__outbox_events.sql
+│   │   ├── V8__processed_events.sql
+│   │   └── V9__audit_log.sql
+│   │
+│   └── static/                        # Stage 6 Demo UI (Served directly by Spring Boot)
+│       ├── index.html                 # 5 single-page screens: Failure Lab, Ledger Monitor, Observatory, Timeline, Recon
+│       ├── css/dashboard.css          # Vanilla CSS responsive design system
+│       └── js/app.js                  # Vanilla JS interactive client
 │
 ├── src/test/java/com/platform/
 │   ├── transfer/
@@ -89,6 +98,8 @@ payment-ledger-platform/
 │   │   ├── DeterministicDeadlockTest.java          # CyclicBarrier-based
 │   │   ├── IdempotencyRaceTest.java
 │   │   └── LedgerBalancePropertyTest.java          # jqwik
+│   ├── demo/
+│   │   └── DemoApiTest.java                        # Stage 6 demo endpoints verification
 │   ├── outbox/
 │   │   └── OutboxAtomicityTest.java                # crash-injected
 │   ├── reconciliation/
@@ -96,17 +107,13 @@ payment-ledger-platform/
 │   └── integration/                                # Testcontainers: real Postgres/Redis/Kafka
 │       └── EndToEndTransferIT.java
 │
-├── benchmarks/                        # spec §11's benchmark module — separate from src/test
-│   ├── HotAccountContentionBenchmark.java
-│   ├── IdempotencyMechanismBenchmark.java
-│   └── OutboxFailureBenchmark.java
-│
-└── demo-ui/                           # Stage 6 only — see UI_UX_DESIGN.md. Built last.
-    ├── failure-lab/
-    ├── ledger-integrity-monitor/
-    ├── hot-account-observatory/
-    ├── transaction-timeline/
-    └── reconciliation-incident-center/
+└── benchmarks/                        # spec §11's benchmark module — separate from src/test
+    ├── BenchmarkHarness.java
+    ├── HotAccountContentionBenchmark.java
+    ├── IdempotencyMechanismBenchmark.java
+    ├── OutboxFailureBenchmark.java
+    ├── RedisVelocityBenchmark.java
+    └── ConnectionPoolSaturationBenchmark.java
 ```
 
 ## Rules this structure encodes
