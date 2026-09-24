@@ -15,6 +15,8 @@ Persistent context across sessions. This file exists so decisions don't get reli
 - **Sequential ascending UUID lock acquisition before mutating SQL**: Acquiring row locks via `findAccountsForUpdate` before inserting transaction rows prevents foreign key `KEY SHARE` lock inversions that caused deadlock in PostgreSQL during opposing concurrent transfers.
 - **Foreign keys in transaction and ledger tables are DEFERRABLE INITIALLY DEFERRED**: Prevents intermediate statement-level lock acquisition on referenced accounts during multi-step transactions.
 - **`SYSTEM_CASH` is exempt from customer velocity and maker-checker threshold gates**: Funding platform capital is an administrative platform action, not a customer transaction; subjecting it to velocity checks or employee maker-checker would block system account initialization.
+- **Stage 6 Demo Layer is served as zero-dependency static assets directly from Spring Boot (`src/main/resources/static/`)**: Eliminates external Node.js/bundler runtime bloat while providing rich interactive dashboards for live failure tests, invariant monitoring, benchmark visualizations, and reconciliation.
+- **Demo dashboards are pure projections over live database records & Stage 5 benchmark artifacts**: No mock data or fake counters; all 7 invariants, timelines, and contention graphs reflect real database invariants and measured benchmarks.
 
 ## Bugs caught during the design process (told precisely, worth keeping as real examples)
 
