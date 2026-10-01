@@ -23,9 +23,6 @@ public class NotificationConsumer {
     private final ProcessedEventsRepository processedEventsRepository;
     private final ObjectMapper objectMapper;
 
-    // Track latest seen version per account for out-of-order detection (REQ-044)
-    private final ConcurrentMap<String, Long> lastSeenAccountVersion = new ConcurrentHashMap<>();
-
     public NotificationConsumer(ProcessedEventsRepository processedEventsRepository, ObjectMapper objectMapper) {
         this.processedEventsRepository = processedEventsRepository;
         this.objectMapper = objectMapper;
@@ -51,15 +48,18 @@ public class NotificationConsumer {
         }
 
         AccountBalanceChangedEvent payload = envelope.payload();
-        String accountKey = payload.accountId().toString();
 
-        // REQ-044: Version check for ordering verification
-        Long previousVersion = lastSeenAccountVersion.get(accountKey);
-        if (previousVersion != null && payload.accountVersion() <= previousVersion) {
-            log.warn("Out-of-order or stale event detected for account {}: currentVersion={}, lastSeenVersion={}",
-                    accountKey, payload.accountVersion(), previousVersion);
-        } else {
-            lastSeenAccountVersion.put(accountKey, payload.accountVersion());
+        // REQ-044: Durable version check for ordering verification across restarts
+        boolean versionAdvanced = processedEventsRepository.tryUpdateAccountVersion(
+                CONSUMER_NAME,
+                payload.accountId(),
+                payload.accountVersion()
+        );
+
+        if (!versionAdvanced) {
+            log.warn("Out-of-order or stale event rejected for account {}: incoming version={}",
+                    payload.accountId(), payload.accountVersion());
+            return;
         }
 
         // REQ-047: External provider notification caveat — send notification using external idempotency key if supported

@@ -4,6 +4,9 @@ import com.platform.account.application.AccountApplicationService;
 import com.platform.account.domain.Account;
 import com.platform.common.error.BusinessException;
 import com.platform.common.error.ErrorCode;
+import com.platform.security.AuthorizationService;
+import com.platform.security.SecurityUtils;
+import com.platform.security.UserRole;
 import com.platform.transfer.api.TransferResponse;
 import com.platform.transfer.domain.LedgerEntry;
 import com.platform.transfer.domain.TransferResult;
@@ -21,14 +24,22 @@ import java.util.UUID;
 public class AccountController {
 
     private final AccountApplicationService accountApplicationService;
+    private final AuthorizationService authorizationService;
 
-    public AccountController(AccountApplicationService accountApplicationService) {
+    public AccountController(
+            AccountApplicationService accountApplicationService,
+            AuthorizationService authorizationService
+    ) {
         this.accountApplicationService = accountApplicationService;
+        this.authorizationService = authorizationService;
     }
 
     @PostMapping
     public ResponseEntity<Account> createAccount(@Valid @RequestBody CreateAccountRequest request) {
-        Account created = accountApplicationService.createAccount(request.ownerId(), request.currency());
+        UUID ownerId = request.ownerId() != null ? request.ownerId() : SecurityUtils.getAuthenticatedUserId();
+        authorizationService.requireAccountOwnershipOrAdmin(ownerId);
+
+        Account created = accountApplicationService.createAccount(ownerId, request.currency());
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -42,8 +53,13 @@ public class AccountController {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required");
         }
 
+        Account account = accountApplicationService.getAccount(accountId);
+        authorizationService.requireAccountOwnershipOrAdmin(account.ownerId());
+
+        UUID principalId = SecurityUtils.getAuthenticatedUserId();
+
         TransferResult result = accountApplicationService.fundAccount(
-                request.principalId(),
+                principalId,
                 idempotencyKey.trim(),
                 accountId,
                 request.amount()
@@ -82,11 +98,15 @@ public class AccountController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Account> getAccount(@PathVariable("id") UUID id) {
-        return ResponseEntity.ok(accountApplicationService.getAccount(id));
+        Account account = accountApplicationService.getAccount(id);
+        authorizationService.requireAccountOwnershipOrAdmin(account.ownerId());
+        return ResponseEntity.ok(account);
     }
 
     @GetMapping("/{id}/balance")
     public ResponseEntity<AccountApplicationService.AccountBalanceSummary> getBalance(@PathVariable("id") UUID id) {
+        Account account = accountApplicationService.getAccount(id);
+        authorizationService.requireAccountOwnershipOrAdmin(account.ownerId());
         return ResponseEntity.ok(accountApplicationService.getBalanceSummary(id));
     }
 
@@ -96,6 +116,8 @@ public class AccountController {
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(defaultValue = "0") int offset
     ) {
+        Account account = accountApplicationService.getAccount(id);
+        authorizationService.requireAccountOwnershipOrAdmin(account.ownerId());
         return ResponseEntity.ok(accountApplicationService.getAccountLedger(id, limit, offset));
     }
 }

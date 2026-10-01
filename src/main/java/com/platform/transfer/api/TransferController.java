@@ -1,7 +1,11 @@
 package com.platform.transfer.api;
 
+import com.platform.account.domain.Account;
+import com.platform.account.persistence.AccountRepository;
 import com.platform.common.error.BusinessException;
 import com.platform.common.error.ErrorCode;
+import com.platform.security.AuthorizationService;
+import com.platform.security.SecurityUtils;
 import com.platform.transfer.application.TransferApplicationService;
 import com.platform.transfer.domain.Transaction;
 import com.platform.transfer.domain.TransferResult;
@@ -18,9 +22,17 @@ import java.util.UUID;
 public class TransferController {
 
     private final TransferApplicationService transferApplicationService;
+    private final AccountRepository accountRepository;
+    private final AuthorizationService authorizationService;
 
-    public TransferController(TransferApplicationService transferApplicationService) {
+    public TransferController(
+            TransferApplicationService transferApplicationService,
+            AccountRepository accountRepository,
+            AuthorizationService authorizationService
+    ) {
         this.transferApplicationService = transferApplicationService;
+        this.accountRepository = accountRepository;
+        this.authorizationService = authorizationService;
     }
 
     @PostMapping
@@ -32,8 +44,15 @@ public class TransferController {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required");
         }
 
+        UUID principalId = SecurityUtils.getAuthenticatedUserId();
+
+        // Enforce account ownership (or ADMIN bypass)
+        Account sourceAccount = accountRepository.findById(request.sourceAccountId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ACCOUNT_NOT_FOUND, "Source account not found"));
+        authorizationService.requireAccountOwnershipOrAdmin(sourceAccount.ownerId());
+
         TransferResult result = transferApplicationService.transfer(
-                request.principalId(),
+                principalId,
                 idempotencyKey.trim(),
                 request.sourceAccountId(),
                 request.destinationAccountId(),
@@ -80,17 +99,20 @@ public class TransferController {
     public ResponseEntity<TransferResponse> reverseTransaction(
             @PathVariable("id") UUID id,
             @RequestHeader(value = "Idempotency-Key") String idempotencyKey,
-            @RequestBody ReversalRequest request
+            @RequestBody(required = false) ReversalRequest request
     ) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required");
         }
 
+        authorizationService.requireReversalApprover();
+        UUID callerId = SecurityUtils.getAuthenticatedUserId();
+
         TransferResult result = transferApplicationService.reverseTransaction(
-                request.callerId(),
+                callerId,
                 idempotencyKey.trim(),
                 id,
-                request.reason() != null ? request.reason() : "Transaction reversed"
+                (request != null && request.reason() != null) ? request.reason() : "Transaction reversed"
         );
 
         if (result instanceof TransferResult.Posted p) {

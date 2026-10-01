@@ -3,6 +3,9 @@ package com.platform.approval.api;
 import com.platform.approval.application.ApprovalApplicationService;
 import com.platform.common.error.BusinessException;
 import com.platform.common.error.ErrorCode;
+import com.platform.security.AuthorizationService;
+import com.platform.security.SecurityUtils;
+import com.platform.security.UserRole;
 import com.platform.transfer.api.TransferResponse;
 import com.platform.transfer.domain.TransactionStatus;
 import com.platform.transfer.domain.TransferResult;
@@ -18,9 +21,14 @@ import java.util.UUID;
 public class ApprovalController {
 
     private final ApprovalApplicationService approvalApplicationService;
+    private final AuthorizationService authorizationService;
 
-    public ApprovalController(ApprovalApplicationService approvalApplicationService) {
+    public ApprovalController(
+            ApprovalApplicationService approvalApplicationService,
+            AuthorizationService authorizationService
+    ) {
         this.approvalApplicationService = approvalApplicationService;
+        this.authorizationService = authorizationService;
     }
 
     public record ApprovalRequest(UUID principalId, String reason) {}
@@ -29,14 +37,17 @@ public class ApprovalController {
     public ResponseEntity<TransferResponse> approve(
             @PathVariable("id") UUID transactionId,
             @RequestHeader(value = "Idempotency-Key") String idempotencyKey,
-            @RequestBody ApprovalRequest request
+            @RequestBody(required = false) ApprovalRequest request
     ) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required");
         }
 
+        authorizationService.requireRole(UserRole.ROLE_CHECKER, UserRole.ROLE_ADMIN);
+        UUID checkerId = SecurityUtils.getAuthenticatedUserId();
+
         TransferResult result = approvalApplicationService.approve(
-                request.principalId(),
+                checkerId,
                 idempotencyKey.trim(),
                 transactionId
         );
@@ -59,17 +70,20 @@ public class ApprovalController {
     public ResponseEntity<Map<String, Object>> reject(
             @PathVariable("id") UUID transactionId,
             @RequestHeader(value = "Idempotency-Key") String idempotencyKey,
-            @RequestBody ApprovalRequest request
+            @RequestBody(required = false) ApprovalRequest request
     ) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "Idempotency-Key header is required");
         }
 
+        authorizationService.requireRole(UserRole.ROLE_CHECKER, UserRole.ROLE_ADMIN);
+        UUID checkerId = SecurityUtils.getAuthenticatedUserId();
+
         approvalApplicationService.reject(
-                request.principalId(),
+                checkerId,
                 idempotencyKey.trim(),
                 transactionId,
-                request.reason() != null ? request.reason() : "Rejected by checker"
+                (request != null && request.reason() != null) ? request.reason() : "Rejected by checker"
         );
 
         return ResponseEntity.ok(Map.of(

@@ -71,7 +71,8 @@ public class OutboxRepository {
         String sql = """
             WITH to_claim AS (
                 SELECT id FROM outbox_events
-                WHERE (status = 'PENDING' OR (status = 'PUBLISHING' AND lease_until <= now()))
+                WHERE (status = 'PENDING' AND (lease_until IS NULL OR lease_until <= now()))
+                   OR (status = 'PUBLISHING' AND lease_until <= now())
                 ORDER BY id
                 LIMIT ?
                 FOR UPDATE SKIP LOCKED
