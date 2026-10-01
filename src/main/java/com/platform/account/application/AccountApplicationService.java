@@ -24,15 +24,18 @@ public class AccountApplicationService {
     private final AccountRepository accountRepository;
     private final LedgerRepository ledgerRepository;
     private final TransferApplicationService transferApplicationService;
+    private final com.platform.audit.AuditLogService auditLogService;
 
     public AccountApplicationService(
             AccountRepository accountRepository,
             LedgerRepository ledgerRepository,
-            TransferApplicationService transferApplicationService
+            TransferApplicationService transferApplicationService,
+            com.platform.audit.AuditLogService auditLogService
     ) {
         this.accountRepository = accountRepository;
         this.ledgerRepository = ledgerRepository;
         this.transferApplicationService = transferApplicationService;
+        this.auditLogService = auditLogService;
     }
 
     public Account createAccount(UUID ownerId, String currency) {
@@ -51,6 +54,16 @@ public class AccountApplicationService {
                 Instant.now()
         );
         accountRepository.insertAccount(account);
+        auditLogService.logAction(
+                ownerId,
+                "CREATE_ACCOUNT",
+                "ACCOUNT",
+                id,
+                id.toString(),
+                "SUCCESS",
+                "Account created",
+                "{\"currency\":\"" + currency.toUpperCase() + "\"}"
+        );
         return account;
     }
 

@@ -23,7 +23,11 @@ local entries = redis.call('ZRANGEBYSCORE', key, windowStart, '+inf')
 local currentSum = 0
 
 for _, entry in ipairs(entries) do
-    local amountStr = string.match(entry, '^([%d]+):')
+    local amountStr, existingOpId = string.match(entry, '^([%d]+):(.*)$')
+    if existingOpId == opId then
+        -- Operation already recorded within sliding window (idempotent replay)
+        return {1, currentSum, limitPaise}
+    end
     if amountStr then
         currentSum = currentSum + tonumber(amountStr)
     end

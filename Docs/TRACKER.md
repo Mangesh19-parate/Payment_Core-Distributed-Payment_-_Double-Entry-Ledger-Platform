@@ -23,8 +23,9 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | REQ-024 | Canonical request hash | VERIFIED | Yes | `IdempotencyRaceTest.testIdempotencyKeyPayloadConflict` |
 | REQ-025 | Business-final → durable FAILED | VERIFIED | Yes | `IdempotencyRaceTest.testBusinessFailureDurableIdempotency` |
 | REQ-026 | Transient → full transaction abort | VERIFIED | Yes | `TransferApplicationService` transient exception re-throw |
-| REQ-027 | Idempotency key expiry | VERIFIED | Yes | Cleaned via scheduled job / schema |
-| REQ-028 | Idempotency-Key on all mutating endpoints | VERIFIED | Yes | `TransferController`, `AccountController` |
+| REQ-026 | Transient → full transaction abort | VERIFIED | Yes | `TransferApplicationService` transient exception re-throw |
+| REQ-027 | Idempotency key expiry | VERIFIED | Yes | `V13__idempotency_expiry.sql`, `IdempotencyCleanupJob` |
+| REQ-028 | Idempotency-Key on all mutating endpoints | VERIFIED | Yes | `TransferController`, `AccountController`, `ApprovalController` |
 
 ## Stage 2 — Kafka & Outbox (P1)
 
@@ -33,8 +34,8 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | REQ-040 | Outbox insert atomic with ledger write | VERIFIED | Yes | `OutboxAtomicityTest.testOutboxEventsCommittedAtomicallyWithTransfer` |
 | REQ-041 | No DB tx held across Kafka call | VERIFIED | Yes | `OutboxRelayTest.testRelayClaimsAndPublishesEvents` |
 | REQ-042 | SKIP LOCKED claim | VERIFIED | Yes | `OutboxRepository.claimPendingEvents` |
-| REQ-043 | Outbox status enum + lease_until | VERIFIED | Yes | `OutboxRelayTest.testFailedPublishTriggersBackoff` |
-| REQ-044 | `account_version` ordering check | VERIFIED | Yes | `ConsumerDeduplicationTest.testNotificationConsumerDeduplicationAndVersioning` |
+| REQ-043 | Outbox status enum + lease_until backoff | VERIFIED | Yes | `OutboxBackoffBehaviorTest.failedEventWithBackoff_isNotClaimedPrematurely` |
+| REQ-044 | `account_version` ordering check | VERIFIED | Yes | `V12__consumer_event_versions.sql`, `DurableConsumerOrderingTest` |
 | REQ-045 | Versioned event envelope | VERIFIED | Yes | `EventEnvelope` and `OutboxAtomicityTest` |
 | REQ-046 | `processed_events` inbox dedupe | VERIFIED | Yes | `ConsumerDeduplicationTest.testSettlementConsumerInboxDeduplication` |
 | REQ-047 | Notification external-provider caveat | VERIFIED | Yes | `NotificationConsumer.sendNotification` |
@@ -45,9 +46,9 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
 | REQ-060 | Monetary sum, not event count | VERIFIED | Yes | `VelocityCheckServiceTest.testMonetarySumVelocityLimit` |
-| REQ-061 | Atomic Lua check-and-record | VERIFIED | Yes | `VelocityCheckServiceTest.testConcurrentVelocityChecking` |
+| REQ-061 | Atomic Lua check-and-record | VERIFIED | Yes | `velocity_check.lua` idempotent replay guard, `VelocityIdempotencyTest` |
 | REQ-062 | Fail-closed on Redis down | VERIFIED | Yes | `VelocityFailClosedTest.testVelocityFailsClosedOnRedisError` |
-| REQ-063 | Post-transaction monitoring (P0); reserve/release (P1) | VERIFIED | Yes | Integrated pre-Coordinator in `TransferApplicationService` |
+| REQ-063 | Pre-transaction risk admission control | VERIFIED | Yes | DB idempotency lookup first, then Redis sliding window in `TransferApplicationService` |
 | REQ-080 | Reconciliation comparison job | VERIFIED | Yes | `ReconciliationDriftTest.testReconciliationDetectionAndRemediationWorkflow` |
 | REQ-081 | No silent auto-correct | VERIFIED | Yes | `ReconciliationDriftTest.testReconciliationDetectionAndRemediationWorkflow` |
 | REQ-082 | Six-step remediation workflow | VERIFIED | Yes | `ReconciliationDriftTest.testReconciliationDetectionAndRemediationWorkflow` |
@@ -60,7 +61,7 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | REQ-100 | Pre-Coordinator auth checks & JWT RBAC | VERIFIED | Yes | `JwtAuthenticationFilter`, `AuthorizationService`, `SecurityAuthorizationTest` |
 | REQ-101 | Reversal authorization + unique index | VERIFIED | Yes | `ROLE_REVERSAL_APPROVER` check in `TransferController`, `SecurityAuthorizationTest` |
 | REQ-102 | Maker-checker threshold approval | VERIFIED | Yes | `ROLE_CHECKER` verification + distinct caller enforcement, `SecurityAuthorizationTest` |
-| REQ-103 | Append-only audit log | VERIFIED | Yes | `V9__audit_log.sql`, `AuditLogService`, `ReconciliationDriftTest` |
+| REQ-103 | Append-only audit log | VERIFIED | Yes | Comprehensive logging in `TransferApplicationService`, `AccountApplicationService`, `ApprovalApplicationService` |
 | REQ-104 | Rate limit by principal + IP | VERIFIED | Yes | `RateLimitingFilter`, `SecurityAndRateLimitingTest` |
 
 ## Non-functional

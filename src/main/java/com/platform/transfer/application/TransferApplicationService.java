@@ -41,6 +41,7 @@ public class TransferApplicationService {
     private final TransferDomainService transferDomainService;
     private final com.platform.velocity.VelocityCheckService velocityCheckService;
     private final com.platform.approval.persistence.ApprovalRepository approvalRepository;
+    private final com.platform.audit.AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
     private final long makerCheckerThresholdPaise;
@@ -53,6 +54,7 @@ public class TransferApplicationService {
             TransferDomainService transferDomainService,
             com.platform.velocity.VelocityCheckService velocityCheckService,
             com.platform.approval.persistence.ApprovalRepository approvalRepository,
+            com.platform.audit.AuditLogService auditLogService,
             ObjectMapper objectMapper,
             PlatformTransactionManager transactionManager,
             @org.springframework.beans.factory.annotation.Value("${app.maker-checker.threshold-paise:10000000}") long makerCheckerThresholdPaise
@@ -64,6 +66,7 @@ public class TransferApplicationService {
         this.transferDomainService = transferDomainService;
         this.velocityCheckService = velocityCheckService;
         this.approvalRepository = approvalRepository;
+        this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
         this.makerCheckerThresholdPaise = makerCheckerThresholdPaise;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -90,13 +93,29 @@ public class TransferApplicationService {
         String requestHash = IdempotencyKey.computeRequestHash(sourceAccountId, destinationAccountId, amountPaise, currency);
         UUID transactionId = UUID.randomUUID();
 
+        // REQ-023: Fast check for existing transaction under this idempotency key BEFORE velocity check
+        Optional<Transaction> preExistingOpt = transactionRepository.findByPrincipalAndIdempotencyKey(principalId, idempotencyKey);
+        if (preExistingOpt.isPresent()) {
+            Transaction existingTxn = preExistingOpt.get();
+            if (!existingTxn.requestHash().equals(requestHash)) {
+                throw new BusinessException(ErrorCode.IDEMPOTENCY_CONFLICT, "Idempotency key reused with different request payload");
+            }
+            log.info("Idempotent replay prior to transaction execution for transaction {}", existingTxn.id());
+            return new TransferResult.IdempotentReplay(
+                    existingTxn.id(),
+                    existingTxn.status(),
+                    Money.ofPaise(existingTxn.amount(), existingTxn.currency()),
+                    existingTxn.failureReason()
+            );
+        }
+
         // REQ-060, REQ-061, REQ-062, REQ-063: Pre-transaction velocity control check before Transaction Coordinator (exempt SYSTEM_CASH)
         if (velocityCheckService != null && !com.platform.account.application.AccountApplicationService.SYSTEM_CASH_ACCOUNT_ID.equals(sourceAccountId)) {
             velocityCheckService.checkAndRecord(sourceAccountId, amountPaise, idempotencyKey);
         }
 
         return transactionTemplate.execute(status -> {
-            // 1. Check for existing transaction under this idempotency key
+            // 1. Re-check for race condition during lock acquisition
             Optional<Transaction> existingOpt = transactionRepository.findByPrincipalAndIdempotencyKey(principalId, idempotencyKey);
             if (existingOpt.isPresent()) {
                 Transaction existingTxn = existingOpt.get();
@@ -204,6 +223,18 @@ public class TransferApplicationService {
                         effectiveTxnId, principalId, src, dst, plan, amountPaise, currency, now
                 );
                 outboxRepository.saveAll(outboxEvents);
+
+                auditLogService.logAction(
+                        principalId,
+                        "TRANSFER_POSTED",
+                        "TRANSACTION",
+                        effectiveTxnId,
+                        idempotencyKey,
+                        "SUCCESS",
+                        "Transfer posted successfully",
+                        String.format("{\"sourceAccountId\":\"%s\",\"destinationAccountId\":\"%s\",\"amount\":%d}",
+                                sourceAccountId, destinationAccountId, amountPaise)
+                );
 
                 status.releaseSavepoint(savepoint);
 
@@ -373,6 +404,18 @@ public class TransferApplicationService {
                     reversalTxnId, callerId, src, dst, plan, amountPaise, currency, now
             );
             outboxRepository.saveAll(outboxEvents);
+
+            auditLogService.logAction(
+                    callerId,
+                    "TRANSACTION_REVERSED",
+                    "TRANSACTION",
+                    reversalTxnId,
+                    idempotencyKey,
+                    "SUCCESS",
+                    reason,
+                    String.format("{\"originalTransactionId\":\"%s\",\"reversalTransactionId\":\"%s\"}",
+                            originalTransactionId, reversalTxnId)
+            );
 
             log.info("Transaction {} successfully reversed via reversal transaction {}", originalTransactionId, reversalTxnId);
             return new TransferResult.Posted(reversalTxnId, revSourceId, revDestId, amount, now);
