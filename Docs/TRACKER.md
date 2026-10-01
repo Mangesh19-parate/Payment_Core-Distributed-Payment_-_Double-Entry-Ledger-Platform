@@ -6,7 +6,7 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-001 | Ledger append-only (permission-level) | VERIFIED | Yes | `LedgerBalancePropertyTest` |
+| REQ-001 | Ledger append-only (permission-level & trigger) | VERIFIED | Yes | `V14__immutable_ledger_triggers.sql`, `LedgerAppendOnlySecurityTest` |
 | REQ-002 | `trg_ledger_balance` trigger | VERIFIED | Yes | `LedgerBalancePropertyTest.testTriggerRejectsImbalancedLedgerEntries` |
 | REQ-003 | `trg_posting_invariant` trigger | VERIFIED | Yes | `LedgerBalancePropertyTest.testTriggerRejectsPostingWithoutEntries` |
 | REQ-004 | `cached_balance` as projection | VERIFIED | Yes | `FundingAndTransferFlowTest`, `ConcurrentWithdrawalTest` |
@@ -22,7 +22,6 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 | REQ-023 | DB unique constraint idempotency | VERIFIED | Yes | `IdempotencyRaceTest.testConcurrentIdempotentRequests` |
 | REQ-024 | Canonical request hash | VERIFIED | Yes | `IdempotencyRaceTest.testIdempotencyKeyPayloadConflict` |
 | REQ-025 | Business-final → durable FAILED | VERIFIED | Yes | `IdempotencyRaceTest.testBusinessFailureDurableIdempotency` |
-| REQ-026 | Transient → full transaction abort | VERIFIED | Yes | `TransferApplicationService` transient exception re-throw |
 | REQ-026 | Transient → full transaction abort | VERIFIED | Yes | `TransferApplicationService` transient exception re-throw |
 | REQ-027 | Idempotency key expiry | VERIFIED | Yes | `V13__idempotency_expiry.sql`, `IdempotencyCleanupJob` |
 | REQ-028 | Idempotency-Key on all mutating endpoints | VERIFIED | Yes | `TransferController`, `AccountController`, `ApprovalController` |
@@ -68,7 +67,7 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-120 | Structured logs w/ correlation ID | VERIFIED | Yes | `CorrelationIdFilter` |
+| REQ-120 | Structured JSON logs w/ correlation ID & MDC | VERIFIED | Yes | `CorrelationIdFilter`, `logback-spring.xml` |
 | REQ-121 | Outbox health metrics (4-way) | VERIFIED | Yes | `OutboxHealthMetricsTest.testOutboxHealthMetrics` |
 | REQ-122 | Benchmark methodology stated | VERIFIED | Yes | `BenchmarkHarness`, JSON artifacts in `target/benchmark-results/` |
 | REQ-123 | Layering enforced | VERIFIED | Yes | Strictly adhered across packages |

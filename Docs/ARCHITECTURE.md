@@ -54,6 +54,24 @@ Concretely: `TransferController → TransferApplicationService → TransferDomai
 
 See `APP_FLOW.md` for the full sequence diagrams. In one line: **request → pre-check (fast reject) → DB transaction (lock, post-lock re-validate, ledger write, outbox write, all atomic) → commit → relay (separate, short transactions, no lock held across the Kafka call) → consumers (dedupe, then side effect, atomic with each other).** Nothing outside the DB transaction is ever treated as having "happened" until that transaction commits — this is the answer to why the outbox pattern exists at all.
 
+## Multi-Tier Consistency Model
+
+The platform intentionally does not claim universal "distributed ACID". Each subsystem operates with explicit, documented consistency boundaries:
+
+* **Payment Ledger (PostgreSQL)**: Strongly consistent (ACID) within local transactional boundaries. Row locks acquired in deterministic ascending UUID order; ledger entries and cached balances committed atomically with invariant validation (`trg_ledger_balance`, `trg_posting_invariant`, `trg_ledger_entries_immutable`).
+* **Transactional Outbox**: Durable at-least-once asynchronous delivery with exponential backoff (`lease_until`) and concurrency claims (`FOR UPDATE SKIP LOCKED`).
+* **Kafka Message Broker**: At-least-once distributed messaging.
+* **Consumer Inboxes**: Effectively-once business processing through durable deduplication (`processed_events`) and version ordering projection (`consumer_event_versions`).
+* **Downstream Notifications**: At-least-once delivery with external provider idempotency correlation (`providerIdemKey`).
+* **Redis Velocity Guard**: High-throughput pre-transaction risk admission control (sliding window monetary sum), not the financial source of truth. DB idempotency check executes prior to Redis admission.
+
+## Security & Authentication Boundary
+
+* **JWT Bearer Token Authentication**: Stateless HMAC-SHA256 authenticated tokens containing `userId`, `email`, and `roles`.
+* **Zero Client-Controlled Identity**: Identity (`principalId`, `callerId`, `adminId`) is resolved exclusively from `SecurityContextHolder` / authenticated principal—never trusted from incoming JSON request payloads.
+* **Role-Based Access Control (RBAC)**: Distinct authorization enforcement for `CUSTOMER`, `MAKER`, `CHECKER`, `REVERSAL_APPROVER`, `ADMIN`, and `AUDITOR`.
+* **Maker-Checker Security Invariant**: Transfer approval requires `ROLE_CHECKER` or `ROLE_ADMIN` AND verifies `checkerId != requestedBy` cryptographically and at the database constraint level.
+
 ## What can never break
 
 These are the non-negotiables. A change that would violate any of these needs a human review gate (see below), not a judgment call by whoever's writing the code that day:
