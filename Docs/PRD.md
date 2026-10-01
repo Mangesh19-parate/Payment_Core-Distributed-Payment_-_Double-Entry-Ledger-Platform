@@ -32,7 +32,7 @@ Most portfolio payment projects are CRUD apps wearing a payments costume — a `
 
 | # | Feature | Why it's deferred |
 |---|---|---|
-| 1 | Fraud ring detection (graph connected-components/cycle detection) | Real, but a supporting module — building it before the ledger is solid is decoration over an unfinished foundation. |
+| 1 | Graph-based fraud ring & pass-through flow analysis | Directed DFS cycle detection and temporal pass-through heuristic analysis (P2 algorithmic component). |
 | 2 | Microservice split (Payment/Ledger/Account services) | Reintroduces distributed-transaction problems (loss of a single spanning DB transaction) that a modular monolith avoids for free. |
 | 3 | Debezium/CDC outbox relay | The production upgrade over polling — worth naming, not worth building for a single-node portfolio system. |
 | 4 | Multi-currency with FX conversion | v1 is explicitly INR-only; minor-unit exponent handling per currency is a real, separate feature. |
@@ -41,17 +41,17 @@ Most portfolio payment projects are CRUD apps wearing a payments costume — a `
 
 ## 4. Tech Stack & Constraints
 
-- **Language/framework:** Java 21, Spring Boot. JPA for ordinary CRUD; native SQL/`JdbcTemplate` for lock-sensitive statements specifically (see `ARCHITECTURE.md`).
-- **Datastore:** single PostgreSQL instance. No sharding, no read replicas, until a measured need exists.
-- **Messaging:** Kafka, introduced only in Stage 2 (not before the core ledger/locking/idempotency logic is solid).
-- **Cache/velocity:** Redis, sorted-set + Lua for atomic monetary-sum checks.
-- **Testing:** JUnit 5, Mockito, Testcontainers (real Postgres/Redis/Kafka, not mocks, for integration tests), jqwik for property-based tests.
-- **Hard constraints:**
-  - Modular monolith first. Microservices are P2 and require an explicit, defensible reason to build, not a default.
-  - No feature is added because it looks impressive in a diagram — every data structure and pattern must be traceable to a specific requirement (see spec §5's "what NOT to build" table).
-  - v1 is INR-only.
-  - Money is always an integer minor-unit (`BIGINT`), never a float.
-  - The ledger is append-only at the permission level, not just by convention (`REVOKE UPDATE, DELETE` on `ledger_entries` for the app role).
+- **Language/framework:** Java 21, Spring Boot 3.3. JPA/JdbcTemplate for native SQL and lock-sensitive operations.
+- **Security & RBAC:** Stateless JWT Bearer tokens with BCrypt password hashing and role-based access control (`CUSTOMER`, `MAKER`, `CHECKER`, `REVERSAL_APPROVER`, `ADMIN`, `AUDITOR`). Zero client-supplied identities trusted from JSON.
+- **Datastore:** Single PostgreSQL instance with database-level triggers enforcing ledger and audit immutability.
+- **Messaging:** Kafka with durable consumer version tracking and inbox deduplication.
+- **Cache/velocity:** Redis, sorted-set + Lua for atomic sliding-window monetary-sum risk admission checks.
+- **Testing:** JUnit 5, Mockito, Embedded PostgreSQL/Redis/Kafka for integration tests, jqwik for property-based tests.
+- **Explicit Scope Boundaries & Limitations:**
+  - Modular monolith architecture (single JVM).
+  - INR-only currency with integer minor units (paise, `BIGINT`).
+  - Simulated downstream Kafka settlement and SMS notification providers.
+  - The ledger is append-only at the database engine trigger and permission level.
 
 ## 5. Success Metrics & Validation
 

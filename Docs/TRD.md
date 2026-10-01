@@ -50,9 +50,9 @@ Each requirement has an ID (`REQ-NNN`) so `TRACKER.md` and commit messages can r
 | ID | Requirement |
 |---|---|
 | REQ-060 | The velocity check computes a **monetary sum** within the time window, not an event count (`ZCARD` is explicitly disallowed for this purpose). |
-| REQ-061 | The check-and-record sequence executes atomically via a Redis Lua script. |
+| REQ-061 | The check-and-record sequence executes atomically via a Redis Lua script with idempotent operationId deduplication. |
 | REQ-062 | On Redis unavailability, the check **fails closed** (rejects the transfer). |
-| REQ-063 | v1 implements post-transaction monitoring (P0). Pre-authorization reserve/release is P1, explicitly not required for v1. |
+| REQ-063 | Pre-transaction risk admission control: atomic sliding window check-and-record executed prior to the database transaction coordinator (after fast database idempotency lookup). |
 
 ## 5. Reconciliation
 
@@ -60,17 +60,17 @@ Each requirement has an ID (`REQ-NNN`) so `TRACKER.md` and commit messages can r
 |---|---|
 | REQ-080 | A scheduled job compares `accounts.cached_balance` against `SUM(ledger_entries)` per account. |
 | REQ-081 | Any mismatch creates an incident record and alerts — it is never silently auto-corrected. |
-| REQ-082 | Remediation follows a defined workflow: detect → flag → alert → investigate → correct (explicit action) → record (audit log). |
+| REQ-082 | Remediation follows a defined workflow: detect → flag → alert → investigate → correct (authoritative ledger balance synchronization) → record (audit log). |
 | REQ-083 | An account with confirmed drift transitions to `status = 'SUSPENDED'` rather than continuing to authorize transfers against known-bad data. |
 
 ## 6. Security & Authorization
 
 | ID | Requirement |
 |---|---|
-| REQ-100 | Every account-mutating endpoint checks: authenticated principal, ownership/authorization on the source account, both accounts `ACTIVE` — before reaching the Transaction Coordinator. |
-| REQ-101 | Reversal requires: original transaction `POSTED`, caller has `REVERSAL_APPROVER` role, caller `<> transaction.initiated_by`. Structurally enforced by `ux_one_reversal_per_transaction` (one reversal per original, ever). |
-| REQ-102 | Transfers above a configured threshold require a second, distinct approver via `transaction_approvals` (`approved_by <> requested_by`, enforced by `CHECK`). |
-| REQ-103 | Every state-changing action is written to an append-only `audit_log(actor_id, action, resource_type, resource_id, request_id, result, reason, metadata, created_at)`. |
+| REQ-100 | Stateless JWT bearer authentication & RBAC: every endpoint verifies JWT, extracts authenticated principal, and validates source account ownership or admin privileges before reaching the Transaction Coordinator. |
+| REQ-101 | Reversal requires: original transaction `POSTED`, caller has `ROLE_REVERSAL_APPROVER` role, caller `<> transaction.initiated_by`. Structurally enforced by `ux_one_reversal_per_transaction` (one reversal per original, ever). |
+| REQ-102 | Transfers above a configured threshold require a second, distinct approver with `ROLE_CHECKER` role via `transaction_approvals` (`approved_by <> requested_by`, enforced by `CHECK` and authorization guard). |
+| REQ-103 | Every state-changing action is written to an append-only `audit_log(actor_id, action, resource_type, resource_id, request_id, result, reason, metadata, created_at)` with database-level immutability triggers. |
 | REQ-104 | Rate limiting is scoped to authenticated principal + IP, not an undefined "API key." |
 
 ## 7. Non-Functional Requirements
