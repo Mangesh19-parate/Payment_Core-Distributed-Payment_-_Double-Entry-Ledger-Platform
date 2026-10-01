@@ -2,7 +2,7 @@
 
 Sequencing rule, stated once and applied throughout: **if time runs out, it runs out in P2, never in P0.** An unfinished fraud-graph module or demo screen is fine to show up with. An unfinished idempotency implementation is not. Do not start a later stage's code before the current stage's tests (see `TRD.md`) pass.
 
-## Stage 1 — Core (P0)
+## Stage 1 — Core (P0)                                                      
 
 **Scope:** single Spring Boot service, single Postgres. No Kafka, no Redis, no UI.
 

@@ -65,12 +65,17 @@ public abstract class BaseIntegrationTest {
     }
 
     protected UUID createTestUser() {
+        return createTestUser("ROLE_CUSTOMER");
+    }
+
+    protected UUID createTestUser(String role) {
         UUID userId = UUID.randomUUID();
         testJdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, status, created_at) VALUES (?, ?, ?, 'ACTIVE', NOW()) ON CONFLICT (id) DO NOTHING",
+                "INSERT INTO users (id, email, password_hash, role, status, created_at) VALUES (?, ?, ?, ?, 'ACTIVE', NOW()) ON CONFLICT (id) DO NOTHING",
                 userId,
                 "user-" + userId + "@platform.internal",
-                "$2a$10$testpasswordhash"
+                "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy",
+                role
         );
         return userId;
     }

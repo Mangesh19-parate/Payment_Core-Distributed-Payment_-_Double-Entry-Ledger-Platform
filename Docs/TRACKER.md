@@ -57,9 +57,9 @@ Status per `TRD.md` requirement. Update this file as part of "done," not after t
 
 | REQ | Description | Status | Test exists? | Notes |
 |---|---|---|---|---|
-| REQ-100 | Pre-Coordinator auth checks | VERIFIED | Yes | `TransferApplicationService`, `FundingAndTransferFlowTest` |
-| REQ-101 | Reversal authorization + unique index | VERIFIED | Yes | `TransactionReversalTest.testTransactionReversalFlow` |
-| REQ-102 | Maker-checker threshold approval | VERIFIED | Yes | `MakerCheckerApprovalTest.testMakerCheckerFlow` |
+| REQ-100 | Pre-Coordinator auth checks & JWT RBAC | VERIFIED | Yes | `JwtAuthenticationFilter`, `AuthorizationService`, `SecurityAuthorizationTest` |
+| REQ-101 | Reversal authorization + unique index | VERIFIED | Yes | `ROLE_REVERSAL_APPROVER` check in `TransferController`, `SecurityAuthorizationTest` |
+| REQ-102 | Maker-checker threshold approval | VERIFIED | Yes | `ROLE_CHECKER` verification + distinct caller enforcement, `SecurityAuthorizationTest` |
 | REQ-103 | Append-only audit log | VERIFIED | Yes | `V9__audit_log.sql`, `AuditLogService`, `ReconciliationDriftTest` |
 | REQ-104 | Rate limit by principal + IP | VERIFIED | Yes | `RateLimitingFilter`, `SecurityAndRateLimitingTest` |
 

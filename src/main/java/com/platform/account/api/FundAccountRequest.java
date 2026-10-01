@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record FundAccountRequest(
-        @NotNull(message = "principalId is required")
         UUID principalId,
 
         @Min(value = 1, message = "amount must be at least 1 paise")

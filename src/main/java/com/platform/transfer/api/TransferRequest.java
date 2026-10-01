@@ -8,7 +8,6 @@ import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
 
 public record TransferRequest(
-        @NotNull(message = "principalId is required")
         UUID principalId,
 
         @NotNull(message = "sourceAccountId is required")
